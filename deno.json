@@ -3,6 +3,7 @@
     "dev": "deno run -A --watch ./src/main.ts"
   },
   "imports": {
+    "@discordjs/core": "npm:@discordjs/core@^2.0.0",
     "@std/assert": "jsr:@std/assert@1",
     "@std/path": "jsr:@std/path@^1.0.8",
     "discord.js": "npm:discord.js@^14.16.3"
