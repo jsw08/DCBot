@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { SlashCommand } from "../commands.ts";
+import { SlashCommand } from "../commandLoader.ts";
 
 const command: SlashCommand = {
   command: new SlashCommandBuilder()
