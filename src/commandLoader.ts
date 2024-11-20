@@ -12,9 +12,10 @@ import { Client } from "discord.js";
 import config from "../config.json" with { type: "json" };
 import { join } from "@std/path";
 import { ButtonInteraction } from "discord.js";
+import { SlashCommandOptionsOnlyBuilder } from "discord.js";
 
 export interface SlashCommand {
-  command: SlashCommandBuilder;
+  command: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction) => void;
   autocomplete?: (interaction: AutocompleteInteraction) => void;
   modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
