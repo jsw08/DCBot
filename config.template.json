@@ -1,8 +1,8 @@
 {
-	"token": "",
-	"client_id": "",
-	"private": {
-		"enabled": true,
-		"user_ids": []
-	}
+  "token": "",
+  "client_id": "",
+  "private": {
+    "enabled": true,
+    "user_ids": []
+  }
 }
