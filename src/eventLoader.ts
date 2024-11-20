@@ -19,15 +19,15 @@ const main = async (client: Client) => {
       client.once(
         event.name,
         (...args) => event.execute(...args),
-      )
-		} else {
+      );
+    } else {
       client.on(
         event.name,
         (...args) => event.execute(...args),
       );
-		}
+    }
   }
-	console.log("Loaded all events.")
+  console.log("Loaded all events.");
 };
 
 export default main;

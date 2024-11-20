@@ -1,9 +1,16 @@
 import { Interaction } from "discord.js";
 import { BotEvent } from "../eventLoader.ts";
+import { checkAccess, accessDeniedEmbed } from "../utils/accessCheck.ts";
 
 const execute = (interaction: Interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  //priv.enabled && priv.user_id !== interaction.user.id)
+  if (!checkAccess(interaction.user.id)) {
+    interaction.reply({
+	embeds: [accessDeniedEmbed],
+	ephemeral: true
+    })
+    return
+  }
 
   const command = interaction.client.slashCommands.get(interaction.commandName);
   if (!command) return;
