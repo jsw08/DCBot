@@ -10,6 +10,7 @@ import { ButtonStyle } from "discord.js";
 import { AutocompleteInteraction } from "discord.js";
 import { Colors } from "discord.js";
 import importSexymfs from "../../sexy-mfs.json" with { type: "json" };
+import { embed } from "../utils/embed.ts";
 
 const sexymfs = importSexymfs as { [x: string]: { [x: string]: string } };
 
@@ -38,14 +39,10 @@ const command: SlashCommand = {
     ),
   execute: (interaction) => {
     const nickname = interaction.options.getString("nickname");
+    const revEphmeral = interaction.options.getBoolean( "public" )
     if (!nickname || !sexymfs[nickname]) {
       interaction.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor(Colors.Red)
-            .setDescription("That sexy motherfucker was not found :/")
-            .setFooter({ text: "Brought to you by jsw's slaafje." }),
-        ],
+        embeds: [ embed({message: "That sexy mf wasn't found :/", kindOfEmbed: "error"}) ],
         ephemeral: true,
       });
       return;
@@ -53,12 +50,11 @@ const command: SlashCommand = {
 
     const sexymf = sexymfs[nickname];
     interaction.reply({
-      embeds: Object.keys(sexymf).map((v) => (new EmbedBuilder()
+      embeds: Object.keys(sexymf).map((v) => embed({title: v, kindOfEmbed: "success"})
         .setImage(sexymf[v])
-        .setTitle(v))
       ),
       components: [row],
-      ephemeral: interaction.options.getBoolean("public") ?? true
+      ephemeral: revEphmeral == null ? true : !revEphmeral
     });
   },
   button: (interaction: ButtonInteraction) => {

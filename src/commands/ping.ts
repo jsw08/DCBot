@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { SlashCommand } from "../commandLoader.ts";
 import { ButtonStyle } from "discord.js";
+import { embed } from "../utils/embed.ts";
 
 const button = new ButtonBuilder()
   .setStyle(ButtonStyle.Danger)
@@ -21,13 +22,7 @@ const command: SlashCommand = {
     .setDescription("Show's the bot's ping"),
   execute: (interaction) => {
     interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setAuthor({ name: "jsw's slaafje" })
-          .setDescription(
-            `Pong! ${interaction.client.ws.ping}`,
-          ),
-      ],
+      embeds: [embed({message: "Pong!"})],
       components: [row],
     });
   },
