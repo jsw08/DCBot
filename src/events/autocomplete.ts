@@ -3,7 +3,9 @@ import { BotEvent } from "../eventLoader.ts";
 import { checkAccess } from "../utils/accessCheck.ts";
 
 const execute = (interaction: Interaction) => {
+  console.log(interaction)
   if (!interaction.isAutocomplete()) return;
+  console.log(interaction.options.getString("nickname"));
   //if (!checkAccess(interaction.user.id)) {
   if (!checkAccess(interaction.user.id)) {
     interaction.respond([{

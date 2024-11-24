@@ -5,7 +5,7 @@ import { accessDeniedEmbed, checkAccess } from "../utils/accessCheck.ts";
 const execute = (interaction: Interaction) => {
   if (!interaction.isButton()) return;
   //if (!checkAccess(interaction.user.id)) {
-  if (!checkAccess(interaction.user.id)) {
+  if (!checkAccess(interaction.user.id) || interaction.customId.split("_")[1] !== interaction.user.id) {
     interaction.reply({
 	embeds: [accessDeniedEmbed],
 	ephemeral: true
