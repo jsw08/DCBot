@@ -7,8 +7,8 @@ const execute = (interaction: Interaction) => {
   //if (!checkAccess(interaction.user.id)) {
   if (!checkAccess(interaction.user.id)) {
     interaction.respond([{
-      name: "You don't have access.",
-      value: "Please remove this bot from your account."
+      name: "You don't have access. Please remove this bot from your account.",
+      value: ""
     }])
     return;
   }
