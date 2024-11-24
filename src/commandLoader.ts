@@ -52,7 +52,6 @@ const main = async (client: Client) => {
 	const inDm = v.inDm ?? true;
 
 	commandBuilder["contexts"] = inDm ? [0,1,2] : [0,1];
-	console.log(commandBuilder)
 
 	return commandBuilder;
     }),
