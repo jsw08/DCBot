@@ -3,7 +3,8 @@
   "client_id": "",
   "private": {
     "enabled": true,
-    "user_ids": [""]
+    "user_ids": [""],
+    "guild_ids": [""]
   },
   "sexy-mfs": {
     "dir": "",

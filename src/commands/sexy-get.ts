@@ -107,6 +107,7 @@ const sexyMfWasntFoundEmbed = (
   });
 
 const command: SlashCommand = {
+  inGuild: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-get")
     .setDescription("Grabs a sexy mother fucking picture from the server's fs.")
