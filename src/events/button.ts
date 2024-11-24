@@ -16,7 +16,6 @@ const execute = (interaction: Interaction) => {
   const command = interaction.client.slashCommands.get(interaction.customId.split("_")[0]);
   if (!command || !command.button) return;
 
-  interaction.deferUpdate();
   command.button(interaction);
 };
 
