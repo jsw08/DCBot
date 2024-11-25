@@ -63,7 +63,9 @@ const paginatorRow = (
     .setDisabled(true)
     .setStyle(ButtonStyle.Secondary)
     .setLabel(`${currentPage + 1}/${maxPages + 1}`)
-    .setCustomId(`${command.command.name}_${userId}_toPage_${nickname}_${currentPage}`);
+    .setCustomId(
+      `${command.command.name}_${userId}_toPage_${nickname}_${currentPage}`,
+    );
 
   return new ActionRowBuilder<ButtonBuilder>().setComponents(
     arrowButton("l"),
@@ -107,7 +109,7 @@ const sexyMfWasntFoundEmbed = (
   });
 
 const command: SlashCommand = {
-  inGuild: "nowhere",
+  inGuild: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-get")
     .setDescription("Grabs a sexy mother fucking picture from the server's fs.")
@@ -118,11 +120,11 @@ const command: SlashCommand = {
         .setAutocomplete(true)
         .setRequired(true)
     )
-    .addIntegerOption(opt =>
+    .addIntegerOption((opt) =>
       opt
-	.setName("page")
-	.setDescription("The page that will be opened.")
-	.setAutocomplete(true)
+        .setName("page")
+        .setDescription("The page that will be opened.")
+        .setAutocomplete(true)
     )
     .addBooleanOption((opt) =>
       opt
@@ -177,50 +179,56 @@ const command: SlashCommand = {
     }
   },
   autocomplete: async (interaction: AutocompleteInteraction) => {
-    console.log(interaction.options.getFocused(true).name)
+    console.log(interaction.options.getFocused(true).name);
     switch (interaction.options.getFocused(true).name) {
       case "nickname": {
-	const files = Deno.readDir(
-	  join(import.meta.dirname!, "../../", config["sexy-mfs"].dir),
-	);
-	const sexymfs: { name: string; value: string }[] = [];
-	for await (const sexymf of files) {
-	  sexymfs.push({ name: sexymf.name, value: sexymf.name });
-	}
+        const files = Deno.readDir(
+          join(import.meta.dirname!, "../../", config["sexy-mfs"].dir),
+        );
+        const sexymfs: { name: string; value: string }[] = [];
+        for await (const sexymf of files) {
+          sexymfs.push({ name: sexymf.name, value: sexymf.name });
+        }
 
-	if (sexymfs.length === 0) {
-	  sexymfs.push({
-	    name: "There are currently no sexy motherfuckers available",
-	    value: "NOSEXY",
-	  });
-	}
+        if (sexymfs.length === 0) {
+          sexymfs.push({
+            name: "There are currently no sexy motherfuckers available",
+            value: "NOSEXY",
+          });
+        }
 
-	await interaction.respond(
-	  sexymfs,
-	);
-	break
+        await interaction.respond(
+          sexymfs,
+        );
+        break;
       }
       case "page": {
-	const nickname = interaction.options.getString("nickname");
-	if (!nickname) { 
-	  await interaction.respond([{name: "That sexy mf wasn't found :/", value:""}]) 
-	  break; 
-	}
+        const nickname = interaction.options.getString("nickname");
+        if (!nickname) {
+          await interaction.respond([{
+            name: "That sexy mf wasn't found :/",
+            value: "",
+          }]);
+          break;
+        }
 
-	const images = await getSexyImages(nickname)
-	if (!images) {
-	  await interaction.respond([{name: "That sexy mf wasn't found :/", value:""}])
-	  break
-	}
+        const images = await getSexyImages(nickname);
+        if (!images) {
+          await interaction.respond([{
+            name: "That sexy mf wasn't found :/",
+            value: "",
+          }]);
+          break;
+        }
 
-	await interaction.respond(
-	  Array.from({ length: images.length })
-	    .map((_, index) => ({
-	      name: (index + 1).toString(),
-	      value: index
-	    }))
-	)
-	break
+        await interaction.respond(
+          Array.from({ length: images.length })
+            .map((_, index) => ({
+              name: (index + 1).toString(),
+              value: index,
+            })),
+        );
+        break;
       }
     }
   },

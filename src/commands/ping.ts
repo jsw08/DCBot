@@ -8,7 +8,6 @@ import { SlashCommand } from "../commandLoader.ts";
 import { ButtonStyle } from "discord.js";
 import { embed } from "../utils/embed.ts";
 
-
 const command: SlashCommand = {
   command: new SlashCommandBuilder()
     .setName("ping")
@@ -22,7 +21,7 @@ const command: SlashCommand = {
       .addComponents(button);
 
     interaction.reply({
-      embeds: [embed({message: "Pong!"})],
+      embeds: [embed({ message: "Pong!" })],
       components: [row],
     });
   },
