@@ -16,13 +16,13 @@ const execute = (interaction: Interaction) => {
     ) {
       interaction.respond([{
         name:
-          "You don't have access. Please remove this bot from your account.",
+          "You don't have access. (In this location.)",
         value: 0,
       }]);
     } else {
       interaction.respond([{
         name:
-          "You don't have access. Please remove this bot from your account.",
+          "You don't have access. (In this location.)",
         value: "",
       }]);
     }
