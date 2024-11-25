@@ -55,9 +55,8 @@ const main = async (client: Client) => {
 
 	commandBuilder.contexts = [
 	  ...(inGuild ?? true ? [0] : []),
-	  ...(v.inDm ?? false ? [1, 2] : [])
+	  ...(v.inDm ?? true ? [1, 2] : [])
 	];
-	console.info(commandBuilder.contexts)
 
 	return commandBuilder;
     }),
