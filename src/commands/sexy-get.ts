@@ -138,7 +138,7 @@ const command: SlashCommand = {
     const page = interaction.options.getInteger("page");
     const revEphmeral = interaction.options.getBoolean("public");
 
-    if (!nickname || nickname === "NOSEXY") {
+    if (!nickname || nickname === "") {
       sexyMfWasntFoundEmbed(interaction);
       return;
     }
@@ -180,25 +180,28 @@ const command: SlashCommand = {
   },
   autocomplete: async (interaction: AutocompleteInteraction) => {
     console.log(interaction.options.getFocused(true).name);
-    switch (interaction.options.getFocused(true).name) {
+    const focussedOption = interaction.options.getFocused(true);
+    switch (focussedOption.name) {
       case "nickname": {
         const files = Deno.readDir(
           join(import.meta.dirname!, "../../", config["sexy-mfs"].dir),
         );
-        const sexymfs: { name: string; value: string }[] = [];
+        const sexymfs: string[] = [];
         for await (const sexymf of files) {
-          sexymfs.push({ name: sexymf.name, value: sexymf.name });
+          sexymfs.push(sexymf.name);
         }
 
+	let options: string[] = [];
         if (sexymfs.length === 0) {
-          sexymfs.push({
-            name: "There are currently no sexy motherfuckers available",
-            value: "NOSEXY",
-          });
-        }
+          options.push("There are currently no sexy motherfuckers available");
+        } else if (focussedOption.value === "") {
+	  options = sexymfs.slice(0, 25)
+	} else {
+	  options = sexymfs.filter(v => v.startsWith(focussedOption.value)).splice(0, 25)
+	}
 
         await interaction.respond(
-          sexymfs,
+          options.map(v => ( {name: v, value: v} )),
         );
         break;
       }
@@ -221,12 +224,26 @@ const command: SlashCommand = {
           break;
         }
 
+	let options = Array.from({ length: images.length })
+	  .map((_, index) => ({
+	    name: (index + 1).toString(),
+	    value: index,
+	  }))
+
+	if (focussedOption.value === "") {
+	    options = options.splice(0, 10);
+	    if (options.some(v => v.value === index.length - 1)) options.push({
+	      name: images.length.toString(),
+	      value: images.length -1
+	    })
+	} else (
+	  options = options
+	    .filter(v => v.name.startsWith(focussedOption.value))
+	    .splice(0, 25)
+	)
+
         await interaction.respond(
-          Array.from({ length: images.length })
-            .map((_, index) => ({
-              name: (index + 1).toString(),
-              value: index,
-            })),
+	  options
         );
         break;
       }

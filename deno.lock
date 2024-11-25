@@ -13,6 +13,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/streams@^1.0.8": "1.0.8",
     "npm:@discordjs/core@2": "2.0.0",
+    "npm:discord-api-types@~0.37.107": "0.37.107",
     "npm:discord.js@^14.16.3": "14.16.3"
   },
   "jsr": {
@@ -175,6 +176,9 @@
     "discord-api-types@0.37.100": {
       "integrity": "sha512-a8zvUI0GYYwDtScfRd/TtaNBDTXwP5DiDVX7K5OmE+DRT57gBqKnwtOC5Ol8z0mRW8KQfETIgiB8U0YZ9NXiCA=="
     },
+    "discord-api-types@0.37.107": {
+      "integrity": "sha512-XOxmxnhtYIRH55kLTrc/JS3nJV1l3wfBtTptFiRGdGDOe2qdCT4DltpxSgskasfDrKfw71Z5quG4tYqTxyPJ7g=="
+    },
     "discord-api-types@0.37.83": {
       "integrity": "sha512-urGGYeWtWNYMKnYlZnOnDHm8fVRffQs3U0SpE8RHeiuLKb/u92APS8HoQnPTFbnXmY1vVnXjXO4dOxcAn3J+DA=="
     },
@@ -233,6 +237,7 @@
       "jsr:@std/http@^1.0.11",
       "jsr:@std/path@^1.0.8",
       "npm:@discordjs/core@2",
+      "npm:discord-api-types@~0.37.107",
       "npm:discord.js@^14.16.3"
     ]
   }
