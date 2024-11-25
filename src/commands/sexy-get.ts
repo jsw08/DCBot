@@ -123,7 +123,7 @@ const command: SlashCommand = {
     .addIntegerOption((opt) =>
       opt
         .setName("page")
-        .setDescription("The page that will be opened.")
+        .setDescription("Sets the default page for the carousel. Obsolete when overwriting the image. (default: 0)")
         .setAutocomplete(true)
     )
     .addBooleanOption((opt) =>
@@ -179,7 +179,6 @@ const command: SlashCommand = {
     }
   },
   autocomplete: async (interaction: AutocompleteInteraction) => {
-    console.log(interaction.options.getFocused(true).name);
     const focussedOption = interaction.options.getFocused(true);
     switch (focussedOption.name) {
       case "nickname": {
@@ -232,7 +231,7 @@ const command: SlashCommand = {
 
 	if (focussedOption.value === "") {
 	    options = options.splice(0, 10);
-	    if (options.some(v => v.value === index.length - 1)) options.push({
+	    if (options.some(v => v.value === images.length - 1)) options.push({
 	      name: images.length.toString(),
 	      value: images.length -1
 	    })
@@ -251,7 +250,7 @@ const command: SlashCommand = {
   },
 };
 
-Deno.serve({ port: config["sexy-mfs"].port }, (req) => {
+Deno.serve({ port: config["sexy-mfs"].port }, (req) => { // the 'cdn'
   return serveDir(req, {
     fsRoot: `${config["sexy-mfs"].dir}`,
   });
