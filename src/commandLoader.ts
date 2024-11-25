@@ -5,6 +5,7 @@ import {
   Collection,
   ModalSubmitInteraction,
   REST,
+  Routes,
   SlashCommandBuilder,
 } from "discord.js";
 import { API } from "@discordjs/core";
@@ -14,7 +15,7 @@ import { join } from "@std/path";
 import { ButtonInteraction } from "discord.js";
 import { SlashCommandOptionsOnlyBuilder } from "discord.js";
 
-export type inGuild = "everywhere" | "select_few" | "nowhere"
+export type inGuild = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
   command: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction) => void;
@@ -22,7 +23,7 @@ export interface SlashCommand {
   modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
   button?: (interaction: ButtonInteraction<CacheType>) => void;
   inDm?: boolean;
-  inGuild?: inGuild
+  inGuild?: inGuild;
 }
 declare module "discord.js" {
   export interface Client {
@@ -47,20 +48,28 @@ const main = async (client: Client) => {
 
   const rest = new REST({ version: "10" }).setToken(config.token);
   const api = new API(rest);
-  await api.applicationCommands.bulkOverwriteGlobalCommands(
-    config.client_id,
-    client.slashCommands.map((v) => {
-	const commandBuilder = v.command.toJSON();
-	const inGuild = v.inGuild !== "nowhere";
 
-	commandBuilder.contexts = [
-	  ...(inGuild ?? true ? [0] : []),
-	  ...(v.inDm ?? true ? [1, 2] : [])
-	];
+  console.log("Loading slash commands...")
+  try {
+    const data = await rest.put(
+      Routes.applicationCommands(config.client_id),
+      {
+        body: client.slashCommands.map((v) => {
+          const commandBuilder = v.command.toJSON();
+          const inGuild = v.inGuild !== "nowhere";
 
-	return commandBuilder;
-    }),
-  );
+          commandBuilder.contexts = [
+            ...(inGuild ?? true ? [0] : []),
+            ...(v.inDm ?? true ? [1, 2] : []),
+          ];
+
+          return commandBuilder;
+        }),
+      },
+    );
+  } catch (e) {
+    console.error(e);
+  }
 
   console.log("Loaded slash commands");
 };
