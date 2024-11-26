@@ -139,7 +139,7 @@ const command: SlashCommand = {
     const nickname = interaction.options.getString("nickname");
     const page = interaction.options.getInteger("page");
     const image = interaction.options.getString("image")
-    const pub = interaction.options.getBoolean("pub");
+    const pub = interaction.options.getBoolean("public");
 
     if (!nickname || nickname === "") {
       sexyMfWasntFoundEmbed(interaction);
@@ -166,7 +166,6 @@ const command: SlashCommand = {
       images = imgs;
     }
 
-    
     interaction.reply({
       ...imagesPageProps(images, nickname, interaction.user.id, image ? 0 : page ?? 0),
       ephemeral: pub == null ? true : !pub,
@@ -229,7 +228,6 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
-
         if (!nickname) {
 	  await nickname404()  
           break;
