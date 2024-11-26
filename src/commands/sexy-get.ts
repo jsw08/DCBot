@@ -15,9 +15,12 @@ import { embed } from "../utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
 
+
+
 const getSexyImages = async (
   nickname: string,
 ): Promise<string[][] | undefined> => {
+  const fileTypes: string[] = [".png", ".PNG", ".jpeg", ."jpg", ".JPG", ".gif", ".GIF", ".webp" ]
   const images: string[][] = [[]];
 
   try {
@@ -29,12 +32,9 @@ const getSexyImages = async (
       images[images.length - 1].push(image.name);
     }
   } catch (e) {
-    if (!(e instanceof Deno.errors.NotFound)) {
-      console.error(e);
-      return;
-    }
+    if (!(e instanceof Deno.errors.NotFound)) throw e
 
-    console.error("Sexy mf wasn't found: ", nickname);
+    console.error("Sexy mf (or image) wasn't found: ", nickname);
     return;
   }
 
@@ -92,9 +92,7 @@ const imagesPageProps = (
         .setURL(config["sexy-mfs"].title_url)
         .setAuthor({ name: "Images might take some time to load in." })
     ),
-    components: [
-      paginatorRow(nickname, userId, currentPage, images.length - 1),
-    ],
+    components: images.length > 1 ? [paginatorRow(nickname, userId, currentPage, images.length - 1)] : [],
   };
 };
 
@@ -120,6 +118,11 @@ const command: SlashCommand = {
         .setAutocomplete(true)
         .setRequired(true)
     )
+    .addStringOption(opt => opt
+      .setName("image")
+      .setDescription("Overwrite the image instead of displaying all images as a carousel.")
+      .setAutocomplete(true)
+    )
     .addIntegerOption((opt) =>
       opt
         .setName("page")
@@ -136,22 +139,38 @@ const command: SlashCommand = {
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
     const page = interaction.options.getInteger("page");
-    const revEphmeral = interaction.options.getBoolean("public");
+    const image = interaction.options.getString("image")
+    const pub = interaction.options.getBoolean("pub");
 
     if (!nickname || nickname === "") {
       sexyMfWasntFoundEmbed(interaction);
       return;
     }
 
-    const images: string[][] | undefined = await getSexyImages(nickname);
-    if (!images) {
-      sexyMfWasntFoundEmbed(interaction);
-      return;
+    let images: string[][] = []
+    if (image) {
+      try {
+	await Deno.lstat(join(import.meta.dirname!, "../../", config["sexy-mfs"].dir, nickname, image))
+      } catch (e) {
+	if (!(e instanceof Deno.errors.NotFound)) throw e
+	sexyMfWasntFoundEmbed(interaction);
+	return
+      }
+
+      images = [[image]];
+    } else {
+      const imgs = await getSexyImages(nickname)
+      if (!imgs) {
+	sexyMfWasntFoundEmbed(interaction);
+	return
+      }
+      images = imgs;
     }
 
+    
     interaction.reply({
-      ...imagesPageProps(images, nickname, interaction.user.id, page ?? 0),
-      ephemeral: revEphmeral == null ? true : !revEphmeral,
+      ...imagesPageProps(images, nickname, interaction.user.id, image ? 0 : page ?? 0),
+      ephemeral: pub == null ? true : !pub,
     });
   },
   button: async (interaction: ButtonInteraction) => {
@@ -180,6 +199,11 @@ const command: SlashCommand = {
   },
   autocomplete: async (interaction: AutocompleteInteraction) => {
     const focussedOption = interaction.options.getFocused(true);
+    const nickname404 = async () => await interaction.respond([{
+	name: "That sexy mf wasn't found :/",
+	value: "",
+      }]); 
+
     switch (focussedOption.name) {
       case "nickname": {
         const files = Deno.readDir(
@@ -206,20 +230,15 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
+
         if (!nickname) {
-          await interaction.respond([{
-            name: "That sexy mf wasn't found :/",
-            value: "",
-          }]);
+	  await nickname404()  
           break;
         }
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          await interaction.respond([{
-            name: "That sexy mf wasn't found :/",
-            value: "",
-          }]);
+	  await nickname404();
           break;
         }
 
@@ -245,6 +264,37 @@ const command: SlashCommand = {
 	  options
         );
         break;
+      }
+      case "image": {
+	const nickname = interaction.options.getString("nickname")
+
+	if (!nickname) {
+	  nickname404()
+	  break
+	}
+
+	const images = await getSexyImages(nickname);
+	if (!images) {
+	  nickname404()
+	  break
+	}
+	
+	let options = images.flat();
+	if (focussedOption.value === "") {
+	  options = options.splice(0, 25)
+	} else {
+	  options = options
+	    .filter(v => v.includes(focussedOption.value))
+	    .slice(0, 25)
+	}
+
+        await interaction.respond(
+	  options.map(v => ({
+	    name: v,
+	    value: v
+	  }))
+        );
+	break
       }
     }
   },

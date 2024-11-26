@@ -14,13 +14,14 @@ export function checkAccess(
   commandScope?: inGuild | null,
 ): boolean {
   if (!config.private.enabled) return true;
+  if (config.private.user_ids.includes(userId)) return true;
   if (guildId && commandScope) {
     return commandScope === "everywhere" ||
       (commandScope === "select_few" &&
         config.private.guild_ids.includes(guildId));
   }
-
-  return config.private.user_ids.includes(userId);
+  
+  return false
 }
 
 export const accessDeniedEmbed = embed({
