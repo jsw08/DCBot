@@ -14,20 +14,11 @@ import { SlashCommand } from "../commandLoader.ts";
 import { embed } from "../utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
+import { usernameAutocomplete, imageFileTypes } from "../utils/sexyHelper.ts";
 
 const getSexyImages = async (
   nickname: string,
 ): Promise<string[][] | undefined> => {
-  const fileTypes: string[] = [
-    ".png",
-    ".PNG",
-    ".jpeg",
-    ".jpg",
-    ".JPG",
-    ".gif",
-    ".GIF",
-    ".webp",
-  ];
   const images: string[][] = [[]];
 
   try {
@@ -35,7 +26,7 @@ const getSexyImages = async (
       join(import.meta.dirname!, "../../", config["sexy-mfs"].dir, nickname),
     );
     for await (const image of sexyImageFiles) {
-      if (!fileTypes.some((v) => image.name.endsWith(v))) continue;
+      if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
       if (images[images.length - 1].length === 4) images.push([]);
       images[images.length - 1].push(image.name);
     }
@@ -236,35 +227,17 @@ const command: SlashCommand = {
     }
   },
   autocomplete: async (interaction: AutocompleteInteraction) => {
-    const focussedOption = interaction.options.getFocused(true);
+    const focusedOption = interaction.options.getFocused(true);
     const nickname404 = async () =>
       await interaction.respond([{
         name: "That sexy mf wasn't found :/",
         value: "",
       }]);
 
-    switch (focussedOption.name) {
+    switch (focusedOption.name) {
       case "nickname": {
-        const files = Deno.readDir(
-          join(import.meta.dirname!, "../../", config["sexy-mfs"].dir),
-        );
-        const sexymfs: string[] = [];
-        for await (const sexymf of files) {
-          sexymfs.push(sexymf.name);
-        }
-
-        let options: string[] = [];
-        if (sexymfs.length === 0) {
-          options.push("There are currently no sexy motherfuckers available");
-        } else if (focussedOption.value === "") {
-          options = sexymfs.slice(0, 25);
-        } else {
-          options = sexymfs.filter((v) => v.startsWith(focussedOption.value))
-            .splice(0, 25);
-        }
-
         await interaction.respond(
-          options.map((v) => ({ name: v, value: v })),
+          await usernameAutocomplete(25, focusedOption.value)
         );
         break;
       }
@@ -298,7 +271,7 @@ const command: SlashCommand = {
             value: index,
           }));
 
-        if (focussedOption.value === "") {
+        if (focusedOption.value === "") {
 	  const length = images.length -1
           options = options.splice(0, 10);
           if (length > 10) {
@@ -309,7 +282,7 @@ const command: SlashCommand = {
           }
         } else {
           options = options
-            .filter((v) => v.name.startsWith(focussedOption.value))
+            .filter((v) => v.name.startsWith(focusedOption.value))
             .splice(0, 25);
         }
 
@@ -333,11 +306,11 @@ const command: SlashCommand = {
         }
 
         let options = images.flat();
-        if (focussedOption.value === "") {
+        if (focusedOption.value === "") {
           options = options.splice(0, 25);
         } else {
           options = options
-            .filter((v) => v.includes(focussedOption.value))
+            .filter((v) => v.includes(focusedOption.value))
             .slice(0, 25);
         }
 
