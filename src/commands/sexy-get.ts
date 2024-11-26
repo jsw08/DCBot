@@ -137,7 +137,7 @@ const command: SlashCommand = {
       opt
         .setName("image")
         .setDescription(
-          "Overwrite the image instead of displaying all images as a carousel.",
+          "Overwrite the image instead of displaying all images as a carousel. This is prioritised over page.",
         )
         .setAutocomplete(true)
     )
@@ -315,15 +315,6 @@ const command: SlashCommand = {
       }
       case "image": {
         const nickname = interaction.options.getString("nickname");
-        const page = interaction.options.getInteger("page");
-
-        if (page !== null) {
-          await interaction.respond([{
-            name: "You can't specify an image if you've already picked a page.",
-            value: "",
-          }]);
-          return;
-        }
 
         if (!nickname) {
           nickname404();
