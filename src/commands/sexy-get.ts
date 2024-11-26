@@ -45,7 +45,6 @@ const getSexyImages = async (
     console.error("Sexy mf (or image) wasn't found: ", nickname);
     return;
   }
-
   return images;
 };
 const paginatorRow = (
@@ -55,22 +54,22 @@ const paginatorRow = (
   maxPages: number,
 ) => {
   const arrowButton = (direction: "l" | "r"): ButtonBuilder => {
+    const isLeft = direction === "l";
     return new ButtonBuilder()
       .setCustomId(
-        `${command.command.name}_${userId}_toPage_${nickname}_` +
-          (direction === "l" ? `${currentPage - 1}` : `${currentPage + 1}`),
+        `${command.command.name}_${userId}_toPage_${nickname}_${currentPage + (isLeft ? -1 : 1)}`,
       )
       .setStyle(ButtonStyle.Primary)
-      .setLabel(direction === "l" ? "⬅️" : "➡️")
+      .setLabel(isLeft ? "⬅️" : "➡️")
       .setDisabled(
-        direction === "l" && currentPage === 0 ||
-          direction === "r" && currentPage === maxPages,
+        (isLeft && currentPage === 0) || (!isLeft && currentPage === maxPages)
       );
   };
+  
   const counterButton = new ButtonBuilder()
     .setDisabled(true)
     .setStyle(ButtonStyle.Secondary)
-    .setLabel(`${currentPage + 1}/${maxPages + 1}`)
+    .setLabel(`${currentPage}/${maxPages}`)
     .setCustomId(
       `${command.command.name}_${userId}_toPage_${nickname}_${currentPage}`,
     );
@@ -201,7 +200,9 @@ const command: SlashCommand = {
         images,
         nickname,
         interaction.user.id,
-        image ? 0 : page ?? 0,
+        image ? 
+          0 
+          : (page && page <= images.length && page >= 0) ? page : 0,
       ),
       ephemeral: pub == null ? true : !pub,
     });
@@ -289,21 +290,23 @@ const command: SlashCommand = {
 
         let options = Array.from({ length: images.length })
           .map((_, index) => ({
-            name: (index + 1).toString(),
+            name: (index).toString(),
             value: index,
           }));
 
         if (focussedOption.value === "") {
           options = options.splice(0, 10);
-          if (options.some((v) => v.value === images.length - 1)) {
+          if (options.some((v) => v.value !== images.length - 1)) {
             options.push({
-              name: images.length.toString(),
+              name: (images.length - 1).toString(),
               value: images.length - 1,
             });
           }
-        } else {options = options
+        } else {
+          options = options
             .filter((v) => v.name.startsWith(focussedOption.value))
-            .splice(0, 25);}
+            .splice(0, 25);
+        }
 
         await interaction.respond(
           options,
