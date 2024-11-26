@@ -20,8 +20,8 @@ export function checkAccess(
       (commandScope === "select_few" &&
         config.private.guild_ids.includes(guildId));
   }
-  
-  return false
+
+  return false;
 }
 
 export const accessDeniedEmbed = embed({

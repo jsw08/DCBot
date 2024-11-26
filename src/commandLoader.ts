@@ -49,7 +49,7 @@ const main = async (client: Client) => {
   const rest = new REST({ version: "10" }).setToken(config.token);
   const api = new API(rest);
 
-  console.log("Loading slash commands...")
+  console.log("Loading slash commands...");
   try {
     const data = await rest.put(
       Routes.applicationCommands(config.client_id),

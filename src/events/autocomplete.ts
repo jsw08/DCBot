@@ -15,14 +15,12 @@ const execute = (interaction: Interaction) => {
         ApplicationCommandOptionType.Integer
     ) {
       interaction.respond([{
-        name:
-          "You don't have access. (In this location.)",
+        name: "You don't have access. (In this location.)",
         value: 0,
       }]);
     } else {
       interaction.respond([{
-        name:
-          "You don't have access. (In this location.)",
+        name: "You don't have access. (In this location.)",
         value: "",
       }]);
     }
