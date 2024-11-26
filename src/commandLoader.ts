@@ -47,7 +47,6 @@ const main = async (client: Client) => {
   }
 
   const rest = new REST({ version: "10" }).setToken(config.token);
-  const api = new API(rest);
 
   console.log("Loading slash commands...");
   try {
@@ -59,7 +58,7 @@ const main = async (client: Client) => {
           const inGuild = v.inGuild !== "nowhere";
 
           commandBuilder.contexts = [
-            ...(inGuild ?? true ? [0] : []),
+            ...(inGuild ? [0] : []),
             ...(v.inDm ?? true ? [1, 2] : []),
           ];
 
