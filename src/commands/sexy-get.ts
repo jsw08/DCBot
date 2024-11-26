@@ -15,12 +15,10 @@ import { embed } from "../utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
 
-
-
 const getSexyImages = async (
   nickname: string,
 ): Promise<string[][] | undefined> => {
-  const fileTypes: string[] = [".png", ".PNG", ".jpeg", ."jpg", ".JPG", ".gif", ".GIF", ".webp" ]
+  const fileTypes: string[] = [".png", ".PNG", ".jpeg", ".jpg", ".JPG", ".gif", ".GIF", ".webp" ]
   const images: string[][] = [[]];
 
   try {
@@ -28,6 +26,7 @@ const getSexyImages = async (
       join(import.meta.dirname!, "../../", config["sexy-mfs"].dir, nickname),
     );
     for await (const image of sexyImageFiles) {
+      if (!fileTypes.some(v => image.name.endsWith(v))) continue;
       if (images[images.length - 1].length === 4) images.push([]);
       images[images.length - 1].push(image.name);
     }
