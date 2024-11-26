@@ -87,19 +87,25 @@ const imagesPageProps = (
   userId: string,
   currentPage: number,
 ): BaseMessageOptions => {
+  const embeds = images[currentPage].map((v) =>
+    embed({
+      title: nickname.at(0)?.toUpperCase() + nickname.slice(1),
+      kindOfEmbed: "success",
+    })
+      .setImage(
+        new URL(`/${nickname}/${v}`, config["sexy-mfs"].image_url)
+          .toString(),
+      )
+      .setURL(config["sexy-mfs"].title_url)
+      .setAuthor({ name: "Images might take some time to load in." })
+  );
   return {
-    embeds: images[currentPage].map((v) =>
+    embeds: embeds.length ? embeds : [
       embed({
-        title: nickname.at(0)?.toUpperCase() + nickname.slice(1),
-        kindOfEmbed: "success",
-      })
-        .setImage(
-          new URL(`/${nickname}/${v}`, config["sexy-mfs"].image_url)
-            .toString(),
-        )
-        .setURL(config["sexy-mfs"].title_url)
-        .setAuthor({ name: "Images might take some time to load in." })
-    ),
+        message: "No images were found of this sexy mf :/",
+        kindOfEmbed: "error",
+      }),
+    ],
     components: images.length > 1
       ? [paginatorRow(nickname, userId, currentPage, images.length - 1)]
       : [],
@@ -259,6 +265,17 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
+        const image = interaction.options.getString("image");
+
+        if (image) {
+          await interaction.respond([{
+            name:
+              "You can't specify a page if you've already selected an image.",
+            value: 0,
+          }]);
+          return;
+        }
+
         if (!nickname) {
           await nickname404();
           break;
@@ -295,6 +312,15 @@ const command: SlashCommand = {
       }
       case "image": {
         const nickname = interaction.options.getString("nickname");
+        const page = interaction.options.getInteger("page");
+
+        if (page !== null) {
+          await interaction.respond([{
+            name: "You can't specify an image if you've already picked a page.",
+            value: "",
+          }]);
+          return;
+        }
 
         if (!nickname) {
           nickname404();
