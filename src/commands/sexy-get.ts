@@ -295,11 +295,12 @@ const command: SlashCommand = {
           }));
 
         if (focussedOption.value === "") {
+	  const length = images.length -1
           options = options.splice(0, 10);
-          if (options.some((v) => v.value !== images.length - 1)) {
+          if (length > 10) {
             options.push({
-              name: (images.length - 1).toString(),
-              value: images.length - 1,
+              name: (length).toString(),
+              value: length,
             });
           }
         } else {
