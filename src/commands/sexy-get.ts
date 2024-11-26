@@ -213,7 +213,7 @@ const command: SlashCommand = {
 
     if (command.includes("toPage")) {
       const nickname = id.split("_")[3];
-      const page = id.split("_")[4];
+      let page = parseInt(id.split("_")[4]);
 
       const images: string[][] | undefined = await getSexyImages(nickname);
       if (!images) {
@@ -221,12 +221,16 @@ const command: SlashCommand = {
         return;
       }
 
+      const length = images.length - 1;
+      console.log(length, page)
+      if (page > length - 1) page = length;
+
       await interaction.update({
         ...imagesPageProps(
           images,
           nickname,
           interaction.user.id,
-          parseInt(page),
+          page,
         ),
       });
     }
