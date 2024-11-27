@@ -14,7 +14,7 @@ import { SlashCommand } from "../commandLoader.ts";
 import { embed } from "../utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
-import { usernameAutocomplete, imageFileTypes } from "../utils/sexyHelper.ts";
+import { imageFileTypes, usernameAutocomplete } from "../utils/sexyHelper.ts";
 
 const getSexyImages = async (
   nickname: string,
@@ -48,15 +48,17 @@ const paginatorRow = (
     const isLeft = direction === "l";
     return new ButtonBuilder()
       .setCustomId(
-        `${command.command.name}_${userId}_toPage_${nickname}_${currentPage + (isLeft ? -1 : 1)}`,
+        `${command.command.name}_${userId}_toPage_${nickname}_${
+          currentPage + (isLeft ? -1 : 1)
+        }`,
       )
       .setStyle(ButtonStyle.Primary)
       .setLabel(isLeft ? "⬅️" : "➡️")
       .setDisabled(
-        (isLeft && currentPage === 0) || (!isLeft && currentPage === maxPages)
+        (isLeft && currentPage === 0) || (!isLeft && currentPage === maxPages),
       );
   };
-  
+
   const counterButton = new ButtonBuilder()
     .setDisabled(true)
     .setStyle(ButtonStyle.Secondary)
@@ -116,7 +118,9 @@ const command: SlashCommand = {
   inGuild: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-get")
-    .setDescription("Retrieves an not-so appealing image from the server's file system.")
+    .setDescription(
+      "Retrieves an not-so appealing image from the server's file system.",
+    )
     .addStringOption((opt) =>
       opt
         .setName("nickname")
@@ -191,9 +195,7 @@ const command: SlashCommand = {
         images,
         nickname,
         interaction.user.id,
-        image ? 
-          0 
-          : (page && page <= images.length && page >= 0) ? page : 0,
+        image ? 0 : (page && page <= images.length && page >= 0) ? page : 0,
       ),
       ephemeral: pub == null ? true : !pub,
     });
@@ -213,7 +215,7 @@ const command: SlashCommand = {
       }
 
       const length = images.length - 1;
-      console.log(length, page)
+      console.log(length, page);
       if (page > length - 1) page = length;
 
       await interaction.update({
@@ -237,7 +239,7 @@ const command: SlashCommand = {
     switch (focusedOption.name) {
       case "nickname": {
         await interaction.respond(
-          await usernameAutocomplete(25, focusedOption.value)
+          await usernameAutocomplete(25, focusedOption.value),
         );
         break;
       }
@@ -267,16 +269,16 @@ const command: SlashCommand = {
 
         let options = Array.from({ length: images.length })
           .map((_, index) => ({
-            name: (index).toString(),
+            name: index.toString(),
             value: index,
           }));
 
         if (focusedOption.value === "") {
-	  const length = images.length -1
+          const length = images.length - 1;
           options = options.splice(0, 10);
           if (length > 10) {
             options.push({
-              name: (length).toString(),
+              name: length.toString(),
               value: length,
             });
           }

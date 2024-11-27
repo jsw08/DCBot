@@ -24,7 +24,7 @@ export const usernameAutocomplete = async (
       .splice(0, amount);
   }
 
-  return options.map(v => ({name: v, value: v}));
+  return options.map((v) => ({ name: v, value: v }));
 };
 
 export const imageFileTypes: string[] = [

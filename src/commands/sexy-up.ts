@@ -6,6 +6,11 @@ import { imageFileTypes, usernameAutocomplete } from "../utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 import config from "../../config.json" with { type: "json" };
 
+const sanitizeString = (str: string): string => {
+  str = str.replace(/[^a-z0-9áéíóúñü \.,_-]/gim, "");
+  return str.trim();
+};
+
 const contentTypes: string[] = imageFileTypes.map((v) =>
   `image/${v.replace(".", "")}`
 );
@@ -39,7 +44,9 @@ const command: SlashCommand = {
     ),
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
-    const filename = JSON.stringify(interaction.options.getString("filename")); // make sure it's safe and stuff
+    const filename = sanitizeString(
+      `${interaction.options.getString("filename")}`,
+    ); // make sure it's safe and stuff
     const image = interaction.options.getAttachment("image");
 
     if (!nickname) {
@@ -142,9 +149,9 @@ const command: SlashCommand = {
       embeds: [
         embed({
           message:
-            `'${image.name}' was uploaded successfully! The new filename is ${filename}.${
+            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${
               filetype[filetype.length - 1]
-            }`,
+            }'`,
           kindOfEmbed: "success",
         }),
       ],
