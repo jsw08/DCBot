@@ -23,6 +23,14 @@ const command: SlashCommand = {
         .setRequired(true)
         .setAutocomplete(true)
     )
+    .addStringOption((opt) =>
+      opt
+        .setName("filename")
+        .setDescription(
+          "Please pick a filename that describes the image. This filename should not include an extension (such as .png).",
+        )
+        .setRequired(true)
+    )
     .addAttachmentOption((opt) =>
       opt
         .setName("image")
@@ -31,6 +39,7 @@ const command: SlashCommand = {
     ),
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
+    const filename = JSON.stringify(interaction.options.getString("filename")); // make sure it's safe and stuff
     const image = interaction.options.getAttachment("image");
 
     if (!nickname) {
@@ -38,6 +47,18 @@ const command: SlashCommand = {
         embeds: [embed({
           title: "Error!",
           message: `Please provide a valid nickname.`,
+          kindOfEmbed: "error",
+        })],
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (!filename || filename.length <= 2 || filename.includes("/") || filename.includes("\\")) {
+      await interaction.reply({
+        embeds: [embed({
+          title: "Error!",
+          message: `Please provide a valid filename.`,
           kindOfEmbed: "error",
         })],
         ephemeral: true,
@@ -77,7 +98,7 @@ const command: SlashCommand = {
 
     if (!createDir) {
       try {
-        await Deno.lstat(join(dir, image.name));
+        await Deno.lstat(join(dir, filename));
         await interaction.reply({
           embeds: [embed({
             title: "Error!",
@@ -107,7 +128,7 @@ const command: SlashCommand = {
       return;
     }
 
-    const file = await Deno.create(join(dir, image.name));
+    const file = await Deno.create(join(dir, filename));
     resp.body.pipeTo(file.writable);
 
     await interaction.reply({
