@@ -87,7 +87,7 @@ const imagesPageProps = (
           .toString(),
       )
       .setURL(config["sexy-mfs"].title_url)
-      .setAuthor({ name: "Images might take some time to load in." })
+      .setAuthor({ name: "Images may take a moment to load." })
   );
   return {
     embeds: embeds.length ? embeds : [
@@ -116,7 +116,7 @@ const command: SlashCommand = {
   inGuild: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-get")
-    .setDescription("Grabs a sexy mother fucking picture from the server's fs.")
+    .setDescription("Retrieves an not-so appealing image from the server's file system.")
     .addStringOption((opt) =>
       opt
         .setName("nickname")
@@ -128,7 +128,7 @@ const command: SlashCommand = {
       opt
         .setName("image")
         .setDescription(
-          "Overwrite the image instead of displaying all images as a carousel. This is prioritised over page.",
+          "View a specific image instead of showing all images in a carousel. This is prioritized over the page option.",
         )
         .setAutocomplete(true)
     )
@@ -136,7 +136,7 @@ const command: SlashCommand = {
       opt
         .setName("page")
         .setDescription(
-          "Sets the default page for the carousel. Obsolete when overwriting the image. (default: 0)",
+          "Sets the default page for the carousel. This is not needed when overwriting the image. (default: 0)",
         )
         .setAutocomplete(true)
     )
@@ -144,7 +144,7 @@ const command: SlashCommand = {
       opt
         .setName("public")
         .setDescription(
-          "This option makes the response visible to everyone, disabled by default.",
+          "This option makes the response visible to all, disabled by default.",
         )
     ),
   execute: async (interaction) => {
@@ -248,7 +248,7 @@ const command: SlashCommand = {
         if (image) {
           await interaction.respond([{
             name:
-              "You can't specify a page if you've already selected an image.",
+              "You cannot specify a page if an image has already been selected.",
             value: 0,
           }]);
           return;
