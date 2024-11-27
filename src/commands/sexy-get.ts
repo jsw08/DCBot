@@ -128,7 +128,7 @@ const command: SlashCommand = {
       opt
         .setName("image")
         .setDescription(
-          "View a specific image instead of showing all images in a carousel. This is prioritized over the page option.",
+          "View a specific image instead of a carousel; this takes priority over the page option.",
         )
         .setAutocomplete(true)
     )
