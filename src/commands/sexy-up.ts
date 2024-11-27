@@ -18,7 +18,7 @@ const command: SlashCommand = {
       opt
         .setName("nickname")
         .setDescription(
-          "The nickname under which the image will be stored. You may also fill in a new nickname.",
+          "The nickname for storing the image. You can also enter a new nickname.",
         )
         .setRequired(true)
         .setAutocomplete(true)
@@ -27,14 +27,14 @@ const command: SlashCommand = {
       opt
         .setName("filename")
         .setDescription(
-          "Please pick a filename that describes the image. This filename should not include an extension (such as .png).",
+	  "Pick a descriptive filename (no ext like .png)."
         )
         .setRequired(true)
     )
     .addAttachmentOption((opt) =>
       opt
         .setName("image")
-        .setDescription("The image file you'll be uploading to the server.")
+        .setDescription("The image file you will upload to the server.")
         .setRequired(true)
     ),
   execute: async (interaction) => {
