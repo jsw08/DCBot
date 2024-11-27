@@ -27,7 +27,7 @@ const command: SlashCommand = {
       opt
         .setName("filename")
         .setDescription(
-	  "Pick a descriptive filename (no ext like .png)."
+          "Pick a descriptive filename (no ext like .png).",
         )
         .setRequired(true)
     )
@@ -54,7 +54,10 @@ const command: SlashCommand = {
       return;
     }
 
-    if (!filename || filename.length <= 2 || filename.includes("/") || filename.includes("\\")) {
+    if (
+      !filename || filename.length <= 2 || filename.includes("/") ||
+      filename.includes("\\")
+    ) {
       await interaction.reply({
         embeds: [embed({
           title: "Error!",
@@ -120,7 +123,8 @@ const command: SlashCommand = {
       await interaction.reply({
         embeds: [embed({
           title: "Error!",
-          message: "Something went wrong while downloading the file to the server.",
+          message:
+            "Something went wrong while downloading the file to the server.",
           kindOfEmbed: "error",
         })],
         ephemeral: true,
@@ -128,17 +132,23 @@ const command: SlashCommand = {
       return;
     }
 
-    const file = await Deno.create(join(dir, filename));
+    const filetype = image.name.split(".");
+    const file = await Deno.create(
+      join(dir, `${filename}.${filetype[filetype.length - 1]}`),
+    );
     resp.body.pipeTo(file.writable);
 
     await interaction.reply({
       embeds: [
         embed({
-          message: `'${image.name}' was uploaded successfully!`,
+          message:
+            `'${image.name}' was uploaded successfully! The new filename is ${filename}.${
+              filetype[filetype.length - 1]
+            }`,
           kindOfEmbed: "success",
         }),
       ],
-      ephemeral: true
+      ephemeral: true,
     });
   },
 
