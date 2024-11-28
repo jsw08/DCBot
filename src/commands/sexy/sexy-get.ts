@@ -115,7 +115,7 @@ const sexyMfWasntFoundEmbed = (
   });
 
 const command: SlashCommand = {
-  inGuild: "select_few",
+  permissions: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-get")
     .setDescription(

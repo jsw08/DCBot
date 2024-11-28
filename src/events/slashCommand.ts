@@ -8,7 +8,7 @@ const execute = (interaction: Interaction) => {
   const command = interaction.client.slashCommands.get(interaction.commandName);
   if (!command) return;
 
-  if (!checkAccess(interaction.user.id, interaction.guildId, command.inGuild)) {
+  if (!checkAccess(interaction.user.id, interaction.guildId, command.permissions)) {
     interaction.reply({
       embeds: [accessDeniedEmbed],
       ephemeral: true,

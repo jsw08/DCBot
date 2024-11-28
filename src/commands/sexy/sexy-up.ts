@@ -15,7 +15,7 @@ const contentTypes: string[] = imageFileTypes.map((v) =>
   `image/${v.replace(".", "")}`
 );
 const command: SlashCommand = {
-  inGuild: "select_few",
+  permissions: "select_few",
   command: new SlashCommandBuilder()
     .setName("sexy-up")
     .setDescription("Upload a sexy picture to the server.")

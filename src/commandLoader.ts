@@ -15,7 +15,7 @@ import { ButtonInteraction } from "discord.js";
 import { SlashCommandOptionsOnlyBuilder } from "discord.js";
 import { walk } from "@std/fs/walk"
 
-export type inGuild = "everywhere" | "select_few" | "nowhere";
+export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
   command: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction) => void;
@@ -23,7 +23,7 @@ export interface SlashCommand {
   modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
   button?: (interaction: ButtonInteraction<CacheType>) => void;
   inDm?: boolean;
-  inGuild?: inGuild;
+  permissions?: Permissions;
 }
 declare module "discord.js" {
   export interface Client {
@@ -55,7 +55,7 @@ const main = async (client: Client) => {
       {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();
-          const inGuild = v.inGuild !== "nowhere";
+          const inGuild = v.permissions !== "nowhere";
 
           commandBuilder.contexts = [
             ...(inGuild ? [0] : []),
