@@ -1,17 +1,17 @@
 import config from "../../config.json" with { type: "json" };
-import { type inGuild } from "../commandLoader.ts";
+import { type Permissions } from "../commandLoader.ts";
 import { embed } from "./embed.ts";
 
 export function checkAccess(userId: string): boolean;
 export function checkAccess(
   userId: string,
   guildId?: string | null,
-  commandScope?: inGuild | null,
+  commandScope?: Permissions | null,
 ): boolean;
 export function checkAccess(
   userId: string,
   guildId?: string | null,
-  commandScope?: inGuild | null,
+  commandScope?: Permissions | null,
 ): boolean {
   if (!config.private.enabled) return true;
   if (config.private.user_ids.includes(userId)) return true;

@@ -10,7 +10,7 @@ const execute = (interaction: Interaction) => {
   );
   if (!command || !command.button) return;
 
-  if (!checkAccess(interaction.user.id, interaction.guildId, command.inGuild)) {
+  if (!checkAccess(interaction.user.id, interaction.guildId, command.permissions)) {
     interaction.reply({
       embeds: [accessDeniedEmbed],
       ephemeral: true,
