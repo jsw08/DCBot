@@ -93,7 +93,7 @@ const command: SlashCommand = {
 
     const dir = join(
       import.meta.dirname!,
-      "../../",
+      "../../../",
       config["sexy-mfs"].dir,
       nickname,
     );

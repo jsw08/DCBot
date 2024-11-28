@@ -23,7 +23,7 @@ const getSexyImages = async (
 
   try {
     const sexyImageFiles = Deno.readDir(
-      join(import.meta.dirname!, "../../", config["sexy-mfs"].dir, nickname),
+      join(import.meta.dirname!, "../../../", config["sexy-mfs"].dir, nickname),
     );
     for await (const image of sexyImageFiles) {
       if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
@@ -168,7 +168,7 @@ const command: SlashCommand = {
         await Deno.lstat(
           join(
             import.meta.dirname!,
-            "../../",
+            "../../../",
             config["sexy-mfs"].dir,
             nickname,
             image,
