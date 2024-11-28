@@ -11,7 +11,7 @@ I haven't implemented many commands yet.
     - Ping
         - Will respond pong lol.
 - Sexy commands: this group of commands allows me and my friends to save (unappealing) images of eachother in a central place and send them as memes.
-    - <details> <summary> Click to show screen recording </summary> ![Sexy-screenrecording](https://github.com/jsw08/DCBot/raw/refs/heads/readme/screenshots/sexy-demo.webm) </details>
+    - <details> <summary> Click to show screen recording </summary> ![Sexy-screenrecording](https://raw.githubusercontent.com/jsw08/DCBot/refs/heads/readme/screenshots/sexy-demo.webm.mov) </details>
 
     - `sexy-get`
         - Will display images of a person.
