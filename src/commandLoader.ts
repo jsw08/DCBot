@@ -8,12 +8,12 @@ import {
   Routes,
   SlashCommandBuilder,
 } from "discord.js";
-import { API } from "@discordjs/core";
 import { Client } from "discord.js";
 import config from "../config.json" with { type: "json" };
 import { join } from "@std/path";
 import { ButtonInteraction } from "discord.js";
 import { SlashCommandOptionsOnlyBuilder } from "discord.js";
+import { walk } from "@std/fs/walk"
 
 export type inGuild = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
@@ -34,13 +34,13 @@ declare module "discord.js" {
 const main = async (client: Client) => {
   const commandDir = join(import.meta.dirname!, "./commands/");
 
-  for await (const commandFile of Deno.readDir(commandDir)) {
+  for await (const commandFile of walk(commandDir)) {
     if (!commandFile.isFile || !commandFile.name.endsWith(".ts")) {
       continue;
     }
 
     const command: SlashCommand =
-      (await import(`./commands/${commandFile.name}`))
+      (await import(commandFile.path))
         .default;
 
     client.slashCommands.set(command.command.name, command);
