@@ -34,13 +34,9 @@ declare module "discord.js" {
 const main = async (client: Client) => {
   const commandDir = join(import.meta.dirname!, "./commands/");
 
-  for await (const commandFile of walk(commandDir)) {
-    if (!commandFile.isFile || !commandFile.name.endsWith(".ts")) {
-      continue;
-    }
-
+  for await (const commandFile of walk(commandDir, {includeDirs: false, includeSymlinks: false, exts: [".ts"]})) {
     const command: SlashCommand =
-      (await import(commandFile.path))
+      (await import(`file:///${commandFile.path}`))
         .default;
 
     client.slashCommands.set(command.command.name, command);
