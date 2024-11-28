@@ -4,9 +4,9 @@ import {
   ButtonInteraction,
   SlashCommandBuilder,
 } from "discord.js";
-import { SlashCommand } from "../commandLoader.ts";
+import { SlashCommand } from "../../commandLoader.ts";
 import { ButtonStyle } from "discord.js";
-import { embed } from "../utils/embed.ts";
+import { embed } from "../../utils/embed.ts";
 
 const command: SlashCommand = {
   command: new SlashCommandBuilder()

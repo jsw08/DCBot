@@ -5,6 +5,7 @@
     "jsr:@std/cli@^1.0.6": "1.0.6",
     "jsr:@std/encoding@^1.0.5": "1.0.5",
     "jsr:@std/fmt@^1.0.3": "1.0.3",
+    "jsr:@std/fs@^1.0.6": "1.0.6",
     "jsr:@std/html@^1.0.3": "1.0.3",
     "jsr:@std/http@^1.0.11": "1.0.11",
     "jsr:@std/internal@^1.0.5": "1.0.5",
@@ -31,6 +32,12 @@
     },
     "@std/fmt@1.0.3": {
       "integrity": "97765c16aa32245ff4e2204ecf7d8562496a3cb8592340a80e7e554e0bb9149f"
+    },
+    "@std/fs@1.0.6": {
+      "integrity": "42b56e1e41b75583a21d5a37f6a6a27de9f510bcd36c0c85791d685ca0b85fa2",
+      "dependencies": [
+        "jsr:@std/path"
+      ]
     },
     "@std/html@1.0.3": {
       "integrity": "7a0ac35e050431fb49d44e61c8b8aac1ebd55937e0dc9ec6409aa4bab39a7988"
@@ -234,6 +241,7 @@
     "dependencies": [
       "jsr:@std/assert@1",
       "jsr:@std/encoding@^1.0.5",
+      "jsr:@std/fs@^1.0.6",
       "jsr:@std/http@^1.0.11",
       "jsr:@std/path@^1.0.8",
       "npm:@discordjs/core@2",
