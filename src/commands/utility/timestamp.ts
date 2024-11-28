@@ -3,6 +3,17 @@ import {
 } from "discord.js";
 import { SlashCommand } from "../../commandLoader.ts";
 import { embed } from "../../utils/embed.ts";
+import { Interaction } from "discord.js";
+import { InteractionResponse } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
+
+const errorMessage = (interaction: ChatInputCommandInteraction, message: string): void => {
+  interaction.reply({
+    embeds: [embed({ title: "Error", message: message, kindOfEmbed: "error"})],
+    ephemeral: true
+  });
+  return
+}
 
 const command: SlashCommand = {
   command: new SlashCommandBuilder()
@@ -26,12 +37,22 @@ const command: SlashCommand = {
         {name: "long date with day of week and short time", value: "F"},
         {name: "relative", value: "R"},
       ])
-    )
-    ,
+    ),
   execute: (interaction) => {
+    const timestamp = interaction.options.getString("timestamp")
+    const type = interaction.options.getString("type")
 
+    if (!timestamp || !type) return errorMessage(interaction, "Something's wrong with your parameters.")
+    const date = Date.parse(timestamp);
+
+    if (isNaN(date)) return errorMessage(interaction, "Your date string is invalid.")
+
+    const dcTimestamp = `<t:${date}:${type}>`
+    const bt = "```" // backticks
     interaction.reply({
-      embeds: [embed({ message: "Pong!" })],
+      embeds: [embed({ 
+	message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`
+      })],
     });
   },
 };
