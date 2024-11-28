@@ -10,9 +10,7 @@ I haven't implemented many commands yet.
 - Utility
     - Ping
         - Will respond pong lol.
-- Sexy commands: this group of commands allows me and my friends to save (unappealing) images of eachother in a central place and send them as memes.
-    - <details> <summary> Click to show screen recording </summary> ![Sexy-screenrecording](https://raw.githubusercontent.com/jsw08/DCBot/refs/heads/readme/screenshots/sexy-demo.webm.mov) </details>
-
+- Sexy commands: this group of commands allows me and my friends to save (unappealing) images of eachother in a central place and send them as memes.  
     - `sexy-get`
         - Will display images of a person.
         - It has two modes; carousel and image. When there's no image specified, it will display every image found in a carousel. You are allowed to use the page parameter to specify the starting page when it's in carousel mode.
@@ -63,3 +61,7 @@ I haven't implemented many commands yet.
 - Create a config.json based on the `config.template.json`, see <a href="#configuration">configuration</a>.
 - Create a sexy-mfs folder at the path you provided in the config.
 - Run `deno run -A ./src/main.ts`
+
+## Screenshots and recordings
+### Sexy mfs
+https://github.com/user-attachments/assets/5ade453d-41c9-430f-893f-04c1c20819b8
