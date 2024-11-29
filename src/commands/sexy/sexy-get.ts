@@ -14,7 +14,10 @@ import { SlashCommand } from "../../commandLoader.ts";
 import { embed } from "../../utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
-import { imageFileTypes, usernameAutocomplete } from "../../utils/sexyHelper.ts";
+import {
+  imageFileTypes,
+  usernameAutocomplete,
+} from "../../utils/sexyHelper.ts";
 
 const getSexyImages = async (
   nickname: string,
