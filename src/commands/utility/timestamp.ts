@@ -17,11 +17,11 @@ const errorMessage = (interaction: ChatInputCommandInteraction, message: string)
 
 const command: SlashCommand = {
   command: new SlashCommandBuilder()
-    .setName("timestamp")
+    .setName("time")
     .setDescription("Generate a discord-timestamp.")
     .addStringOption((opts) => opts
       .setName("time")
-      .setDescription("Please enter a valid javascript date input here.")
+      .setDescription("Please enter a valid JavaScript date. The server is in CET, but JS date strings can use UTC times.")
       .setRequired(true)
     )  
     .addStringOption(opts => opts
@@ -33,13 +33,13 @@ const command: SlashCommand = {
         {name: "long time", value: "T"},
         {name: "short date", value: "d"},
         {name: "long date", value: "D"},
-        {name: "long date with short name", value: "f"},
+        {name: "long date with short time", value: "f"},
         {name: "long date with day of week and short time", value: "F"},
         {name: "relative", value: "R"},
       ])
     ),
   execute: (interaction) => {
-    const timestamp = interaction.options.getString("timestamp")
+    const timestamp = interaction.options.getString("time")
     const type = interaction.options.getString("type")
 
     if (!timestamp || !type) return errorMessage(interaction, "Something's wrong with your parameters.")
@@ -47,12 +47,14 @@ const command: SlashCommand = {
 
     if (isNaN(date)) return errorMessage(interaction, "Your date string is invalid.")
 
-    const dcTimestamp = `<t:${date}:${type}>`
+    const dcTimestamp = `<t:${Math.floor(date/1000)}:${type}>`
     const bt = "```" // backticks
     interaction.reply({
       embeds: [embed({ 
-	message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`
+	title: "Timestamp generator",
+	message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`,
       })],
+      ephemeral: true
     });
   },
 };
