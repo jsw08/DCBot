@@ -3,10 +3,12 @@ import { BotEvent } from "../eventLoader.ts";
 import { accessDeniedEmbed, checkAccess } from "../utils/accessCheck.ts";
 
 const execute = (interaction: Interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isModalSubmit()) return;
 
-  const command = interaction.client.slashCommands.get(interaction.commandName);
-  if (!command) return;
+  const command = interaction.client.slashCommands.get(
+    interaction.customId.split("_")[0],
+  );
+  if (!command || !command.modal) return;
 
   if (
     !checkAccess(interaction.user.id, interaction.guildId, command.permissions)
@@ -17,8 +19,7 @@ const execute = (interaction: Interaction) => {
     });
     return;
   }
-
-  command.execute(interaction);
+  command.modal(interaction);
 };
 
 const event: BotEvent = {

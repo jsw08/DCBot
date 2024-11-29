@@ -9,7 +9,9 @@ const execute = (interaction: Interaction) => {
   const command = interaction.client.slashCommands.get(interaction.commandName);
   if (!command || !command.autocomplete) return;
 
-  if (!checkAccess(interaction.user.id, interaction.guildId, command.permissions)) {
+  if (
+    !checkAccess(interaction.user.id, interaction.guildId, command.permissions)
+  ) {
     if (
       interaction.options.getFocused(true).type ===
         ApplicationCommandOptionType.Integer
