@@ -23,28 +23,86 @@ new Deno.Command("typst", {
 
 const typstModal = () => {
   const typstInput = new TextInputBuilder()
-    .setCustomId("typst-input")
-    .setLabel("Enter your typst code here.")
+    .setCustomId("typst")
+    .setLabel("Typst code.")
     .setStyle(TextInputStyle.Paragraph);
+     
   const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
     .addComponents(typstInput);
 
   return new ModalBuilder()
-    .setTitle("Enter your typst code here.")
+    .setTitle("Typst editor.")
     .setCustomId(`${command.command.name}`)
     .addComponents(inputRow);
 };
 
+type TypstError = {error: "WriteZero" | "TypstError", errorMsg?: string };
+const typstRender = async (input: string, outputPath: string): Promise<void | TypstError> => {
+  const typstCommand = new Deno.Command("typst", {
+    args: ["compile", "-f", "png", "-", outputPath],
+    stdin: "piped",
+    stderr: "piped"
+  });
+  const typstChild = typstCommand.spawn();
+  typstChild.ref();
+
+  const typstWriter = typstChild.stdin.getWriter();
+  try {
+    await typstWriter.write(new TextEncoder()
+      .encode(`#set page(height: auto, width: auto, margin: 1em)\n${input}`));
+    await typstWriter.close();
+  } catch (e) {
+    if (!(e instanceof Deno.errors.WriteZero)) throw e;
+
+    return { error: "WriteZero" }
+  }
+
+  const status = await typstChild.output();
+  if (!status.success) return { error: "TypstError", errorMsg: new TextDecoder().decode(status.stderr) }
+}
+const typstMessage = async (input: string): Promise<{asset: AttachmentBuilder, imageName: string, deleteFile: () => void} | TypstError> => {
+  const tempImageFile = await Deno.makeTempFile({
+    prefix: "typst_",
+    suffix: ".png",
+  });
+
+  const typst = await typstRender(input, tempImageFile);
+  if (typst) return typst;
+
+  return {asset: new AttachmentBuilder(tempImageFile), imageName: basename(tempImageFile), deleteFile: async () => await Deno.remove(tempImageFile)}
+}
 const command: SlashCommand = {
   command: new SlashCommandBuilder()
     .setName("typst")
-    .setDescription("Compiles the provided typst code to a png."),
+    .setDescription("Compiles the provided typst code to an image.")
+    .addStringOption(opts => opts
+      .setName("typst-inline")
+      .setDescription("Single line typst input. Prevents the modal from showing up.")
+    ) // 
+  ,
 
   execute: async (interaction) => {
-    await interaction.showModal(typstModal());
+    if (!typstInstalled) {
+      interaction.reply({
+	embeds: [embed({
+	  title: "Server Error",
+	  message: "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
+	  kindOfEmbed: "error"
+	})]
+      })
+    }
+
+    const inlineTypst = interaction.options.getString("typst-inline");
+    if (!inlineTypst) {
+      await interaction.showModal(typstModal());
+      return
+    }
+
+    const typst = typstMessage(inlineTypst)
   },
   modal: async (interaction) => {
-    const input = interaction.fields.getField("typst-input");
+    await interaction.deferReply()
+    const input = interaction.fields.getField("typst");
 
     const tempImageFile = await Deno.makeTempFile({
       prefix: "typst_",
@@ -53,54 +111,56 @@ const command: SlashCommand = {
     const typstCommand = new Deno.Command("typst", {
       args: ["compile", "-f", "png", "-", tempImageFile],
       stdin: "piped",
+      stderr: "piped"
     });
     const typstChild = typstCommand.spawn();
     typstChild.ref();
 
     const typstWriter = typstChild.stdin.getWriter();
     try {
-      await typstWriter.write(new TextEncoder().encode(input.value));
+      await typstWriter.write(new TextEncoder()
+	.encode(`#set page(height: auto, width: auto, margin: 1em)\n${input.value}`));
       await typstWriter.close();
     } catch (e) {
       if (!(e instanceof Deno.errors.WriteZero)) throw e;
 
-      await interaction.reply({
+      await interaction.followUp({
         embeds: [embed({
-          title: "Error",
+          title: "Server Error",
           message:
             "Something went wrong wile writing your message to the typst compiler.",
           kindOfEmbed: "error",
         })],
-        ephemeral: true,
       });
       return;
     }
 
-    const status = await typstChild.status;
+    const status = await typstChild.output();
+
     if (!status.success) {
       console.info(tempImageFile);
-      await interaction.reply({
+      await interaction.followUp({
         embeds: [embed({
-          title: "Error",
+          title: "Typst Error",
           message:
-            `Something went wrong with compiling your typst code to a png.`,
+            `Something went wrong with compiling your typst code to a png. \`\`\`${new TextDecoder().decode(status.stderr)}\`\`\``,
           kindOfEmbed: "error",
         })],
-        ephemeral: true,
       });
       return;
     }
 
     const image = new AttachmentBuilder(tempImageFile);
-    await interaction.reply({
+    await interaction.followUp({
       embeds: [embed({
         title: "Typst compiler",
-        message: `${tempImageFile}`,
         kindOfEmbed: "success",
       }).setImage(`attachment:///${basename(tempImageFile)}`)],
       files: [image],
-      //ephemeral: true,
+      ephemeral: false,
     });
+
+    await Deno.remove(tempImageFile);
   },
 };
 
