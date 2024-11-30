@@ -10,6 +10,7 @@ import { ModalActionRowComponentBuilder } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { AttachmentBuilder } from "discord.js";
 import { basename } from "@std/path/basename";
+import { join } from "@std/path/join";
 
 let typstInstalled = true;
 try {
@@ -54,7 +55,7 @@ const typstRender = async (
   outputPath: string,
 ): Promise<void | TypstError> => {
   const typstCommand = new Deno.Command("typst", {
-    args: ["compile", "-f", "png", "-", outputPath],
+    args: ["compile", "--root", import.meta.dirname!, "-f", "png", "-", outputPath],
     stdin: "piped",
     stderr: "piped",
   });
