@@ -8,16 +8,14 @@ import {
   Routes,
   SlashCommandBuilder,
 } from "discord.js";
-import { Client } from "discord.js";
+import { Client, ButtonInteraction, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js";
 import config from "config" with { type: "json" };
 import { join } from "@std/path";
-import { ButtonInteraction } from "discord.js";
-import { SlashCommandOptionsOnlyBuilder } from "discord.js";
 import { walk } from "@std/fs/walk";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
-  command: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
+  command: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
   execute: (interaction: ChatInputCommandInteraction) => void;
   autocomplete?: (interaction: AutocompleteInteraction) => void;
   modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
