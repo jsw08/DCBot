@@ -118,9 +118,8 @@ const command: SlashCommand = {
       .addStringOption((opts) =>
 	opts
 	  .setName("code")
-	  .setDescription(
-	    "Provide typst code.",
-      )
+	  .setDescription("Provide typst code.")
+	  .setRequired(true)	
     ))
     .addSubcommand(subc => subc
       .setName("multiline")
