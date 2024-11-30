@@ -3,6 +3,10 @@
     "dev": "deno run -A --watch ./src/main.ts"
   },
   "imports": {
+    "config": "./config.json",
+    "$/": "./src/",
+    "$utils/": "./src/utils/",
+
     "@discordjs/core": "npm:@discordjs/core@^2.0.0",
     "@std/assert": "jsr:@std/assert@1",
     "@std/encoding": "jsr:@std/encoding@^1.0.5",

@@ -5,19 +5,16 @@ import {
   InteractionResponse,
   SlashCommandBuilder,
 } from "discord.js";
-import config from "../../../config.json" with { type: "json" };
+import config from "config" with { type: "json" };
 import { AutocompleteInteraction } from "discord.js";
 import { BaseMessageOptions } from "discord.js";
 import { ButtonStyle } from "discord.js";
 import { ChatInputCommandInteraction } from "discord.js";
-import { SlashCommand } from "../../commandLoader.ts";
-import { embed } from "../../utils/embed.ts";
+import { SlashCommand } from "$/commandLoader.ts";
+import { embed } from "$utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
-import {
-  imageFileTypes,
-  usernameAutocomplete,
-} from "../../utils/sexyHelper.ts";
+import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 
 const getSexyImages = async (
   nickname: string,

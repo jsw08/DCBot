@@ -1,5 +1,4 @@
 import { Colors } from "discord.js";
-import { APIEmbedField, RestOrArray } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 
 type ColorKinds = "success" | "normal" | "warning" | "error";

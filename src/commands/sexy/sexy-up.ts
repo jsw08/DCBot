@@ -1,13 +1,10 @@
 import { SlashCommandBuilder } from "discord.js";
-import { SlashCommand } from "../../commandLoader.ts";
-import { embed } from "../../utils/embed.ts";
+import { SlashCommand } from "$/commandLoader.ts";
+import { embed } from "$utils/embed.ts";
 import { AutocompleteInteraction } from "discord.js";
-import {
-  imageFileTypes,
-  usernameAutocomplete,
-} from "../../utils/sexyHelper.ts";
+import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
-import config from "../../../config.json" with { type: "json" };
+import config from "config" with { type: "json" };
 
 const sanitizeString = (str: string): string => {
   str = str.replace(/[^a-z0-9áéíóúñü \.,_-]/gim, "");

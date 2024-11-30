@@ -1,6 +1,6 @@
-import config from "../../config.json" with { type: "json" };
-import { type Permissions } from "../commandLoader.ts";
-import { embed } from "./embed.ts";
+import config from "config" with { type: "json" };
+import { type Permissions } from "$/commandLoader.ts";
+import { embed } from "$utils/embed.ts";
 
 export function checkAccess(userId: string): boolean;
 export function checkAccess(

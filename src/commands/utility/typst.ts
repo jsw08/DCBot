@@ -4,10 +4,10 @@ import {
   SlashCommandBuilder,
   TextInputBuilder,
 } from "discord.js";
-import { SlashCommand } from "../../commandLoader.ts";
+import { SlashCommand } from "$/commandLoader.ts";
 import { TextInputStyle } from "discord.js";
 import { ModalActionRowComponentBuilder } from "discord.js";
-import { embed } from "../../utils/embed.ts";
+import { embed } from "$utils/embed.ts";
 import { AttachmentBuilder } from "discord.js";
 import { basename } from "@std/path/basename";
 
@@ -22,7 +22,9 @@ try {
 } catch (e) {
   if (!(e instanceof Deno.errors.NotFound)) throw e;
 
-  console.error("Typst is not installed. Command will be disabled.");
+  console.error(
+    "Typst is not installed. Command will be disabled, restart the program to re-run this check.",
+  );
   typstInstalled = false;
 }
 
@@ -85,7 +87,6 @@ const typstMessage = async (
     prefix: "typst_",
     suffix: ".png",
   });
-  console.info(tempImageFile);
 
   const typst = await typstRender(input, tempImageFile);
   if (typst !== undefined) return typst;

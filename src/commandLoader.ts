@@ -9,7 +9,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Client } from "discord.js";
-import config from "../config.json" with { type: "json" };
+import config from "config" with { type: "json" };
 import { join } from "@std/path";
 import { ButtonInteraction } from "discord.js";
 import { SlashCommandOptionsOnlyBuilder } from "discord.js";

@@ -1,7 +1,7 @@
 import { Client, Collection } from "discord.js";
-import config from "../config.json" with { type: "json" };
-import commandLoader, { SlashCommand } from "./commandLoader.ts";
-import eventLoader from "./eventLoader.ts";
+import config from "config" with { type: "json" };
+import commandLoader, { SlashCommand } from "$/commandLoader.ts";
+import eventLoader from "$/eventLoader.ts";
 import { GatewayIntentBits } from "discord.js";
 
 const client = new Client({

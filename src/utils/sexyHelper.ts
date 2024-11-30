@@ -1,6 +1,6 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
 import { join } from "@std/path/join";
-import config from "../../config.json" with { type: "json" };
+import config from "config" with { type: "json" };
 
 export const usernameAutocomplete = async (
   amount: number,

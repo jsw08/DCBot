@@ -1,6 +1,5 @@
 import { Client } from "discord.js";
 import { join } from "@std/path/join";
-import { ClientEvents } from "discord.js";
 
 export interface BotEvent {
   name: string;

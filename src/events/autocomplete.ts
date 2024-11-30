@@ -1,6 +1,6 @@
 import { Interaction } from "discord.js";
-import { BotEvent } from "../eventLoader.ts";
-import { checkAccess } from "../utils/accessCheck.ts";
+import { BotEvent } from "$/eventLoader.ts";
+import { checkAccess } from "$utils/accessCheck.ts";
 import { ApplicationCommandOptionType } from "discord.js";
 
 const execute = (interaction: Interaction) => {
