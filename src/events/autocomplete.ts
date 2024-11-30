@@ -1,7 +1,7 @@
 import { Interaction } from "discord.js";
 import { BotEvent } from "../eventLoader.ts";
 import { checkAccess } from "../utils/accessCheck.ts";
-import { ApplicationCommandOptionType } from "discord-api-types/v10";
+import { ApplicationCommandOptionType } from "discord.js";
 
 const execute = (interaction: Interaction) => {
   if (!interaction.isAutocomplete()) return;
