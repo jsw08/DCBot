@@ -5,12 +5,10 @@ import {
   TextInputBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
-import { TextInputStyle } from "discord.js";
-import { ModalActionRowComponentBuilder } from "discord.js";
+import { TextInputStyle, AttachmentBuilder, ModalActionRowComponentBuilder } from "discord.js";
 import { embed } from "$utils/embed.ts";
-import { AttachmentBuilder } from "discord.js";
 import { basename } from "@std/path/basename";
-import { join } from "@std/path/join";
+import { Buffer } from "node:buffer";
 
 let typstInstalled = true;
 try {
@@ -29,7 +27,7 @@ try {
   typstInstalled = false;
 }
 
-const typstModal = () => {
+const typstModal = (attachFile: boolean) => {
   const typstInput = new TextInputBuilder()
     .setCustomId("typst")
     .setLabel("Typst code.")
@@ -40,7 +38,7 @@ const typstModal = () => {
 
   return new ModalBuilder()
     .setTitle("Typst editor.")
-    .setCustomId(`${command.command.name}`)
+    .setCustomId(`typst_${attachFile}`)
     .addComponents(inputRow);
 };
 
@@ -65,7 +63,10 @@ const typstRender = async (
   const typstWriter = typstChild.stdin.getWriter();
   try {
     await typstWriter.write(new TextEncoder()
-      .encode(`#set page(height: auto, width: auto, margin: 1em)\n${input}`));
+      .encode(`
+	#set page(height: auto, width: auto, margin: 1em)
+	${input}
+      `));
     await typstWriter.close();
   } catch (e) {
     if (!(e instanceof Deno.errors.WriteZero)) throw e;
@@ -110,20 +111,31 @@ const command: SlashCommand = {
 
   command: new SlashCommandBuilder()
     .setName("typst")
-    .setDescription("Compiles the provided typst code to an image.")
-    .addStringOption((opts) =>
-      opts
-        .setName("typst-inline")
-        .setDescription(
-          "Single line typst input. Prevents the modal from showing up.",
-        )
-    ),
-
+    .setDescription("Compiles typst code.")
+    .addSubcommand(subc => subc
+      .setName("inline")
+      .setDescription("Compiles the given typst-oneline code to an image.")
+      .addStringOption((opts) =>
+	opts
+	  .setName("code")
+	  .setDescription(
+	    "Provide typst code.",
+      )
+    ))
+    .addSubcommand(subc => subc
+      .setName("multiline")
+      .setDescription("Compiles the given typst code to an image.")
+      .addBooleanOption(opts => opts
+	.setName("file")
+	.setDescription("Attaches the given typst code as a file.")
+      )
+    )
+  ,
   execute: async (interaction) => {
     if (!typstInstalled) {
       interaction.reply({
         embeds: [embed({
-          title: "Typst Error",
+          title: "Typst",
           message:
             "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
           kindOfEmbed: "error",
@@ -132,9 +144,21 @@ const command: SlashCommand = {
       return;
     }
 
-    const inlineTypst = interaction.options.getString("typst-inline");
+    if (interaction.options.getSubcommand(true) === "multiline") {
+      await interaction.showModal(typstModal(interaction.options.getBoolean("file") ?? false));
+      return
+    }
+
+    const inlineTypst = interaction.options.getString("code");
     if (!inlineTypst) {
-      await interaction.showModal(typstModal());
+      interaction.reply({
+        embeds: [embed({
+          title: "Typst",
+          message: "Please provide valid typst code.",
+          kindOfEmbed: "error",
+        })],
+        ephemeral: true,
+      });
       return;
     }
 
@@ -142,7 +166,7 @@ const command: SlashCommand = {
     if (isTypstError(typst)) {
       interaction.reply({
         embeds: [embed({
-          title: "Typst Error",
+          title: "Typst",
           message:
             `Error while using running typst (${typst.error}).` + typst.errorMsg
               ? `\`\`\`${typst.errorMsg}\`\`\``
@@ -157,7 +181,6 @@ const command: SlashCommand = {
     await interaction.reply({
       embeds: [
         embed({
-          title: "Typst Compiler",
           kindOfEmbed: "success",
         }).setImage(`attachment:///${typst.imageName}`),
       ],
@@ -170,11 +193,12 @@ const command: SlashCommand = {
   modal: async (interaction) => {
     await interaction.deferReply();
     const input = interaction.fields.getField("typst");
+    const attachFile = interaction.customId === "typst_true";
 
     if (!input) {
       await interaction.followUp({
         embeds: [embed({
-          title: "Typst compiler",
+          title: "Typst",
           kindOfEmbed: "error",
           message: "Please provide a valid input.",
         })],
@@ -186,7 +210,7 @@ const command: SlashCommand = {
     if (isTypstError(typst)) {
       interaction.followUp({
         embeds: [embed({
-          title: "Server Error",
+          title: "Typst",
           message:
             `Error while using running typst (${typst.error}).` + typst.errorMsg
               ? `\`\`\`${typst.errorMsg}\`\`\``
@@ -197,15 +221,18 @@ const command: SlashCommand = {
       return;
     }
 
+    const files: AttachmentBuilder[] = [typst.asset];
+    if (attachFile) {
+      const typstFile = new AttachmentBuilder(Buffer.from(new TextEncoder().encode(input.value)));
+      typstFile.setName("main.typ")
+      files.push(typstFile);
+    } 
+    console.log(!attachFile)
     await interaction.followUp({
-      embeds: [
-        embed({
-          title: "Typst compiler",
-          kindOfEmbed: "success",
-        }).setImage(`attachment:///${typst.imageName}`),
-      ],
-      files: [typst.asset],
-      ephemeral: false,
+      files: files,
+      embeds: attachFile ? [] : [embed({
+	kindOfEmbed: "success"
+      })]
     });
   },
 };
