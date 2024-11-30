@@ -13,7 +13,7 @@ import config from "../config.json" with { type: "json" };
 import { join } from "@std/path";
 import { ButtonInteraction } from "discord.js";
 import { SlashCommandOptionsOnlyBuilder } from "discord.js";
-import { walk } from "@std/fs/walk"
+import { walk } from "@std/fs/walk";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
@@ -34,10 +34,15 @@ declare module "discord.js" {
 const main = async (client: Client) => {
   const commandDir = join(import.meta.dirname!, "./commands/");
 
-  for await (const commandFile of walk(commandDir, {includeDirs: false, includeSymlinks: false, exts: [".ts"]})) {
-    const command: SlashCommand =
-      (await import(`file:///${commandFile.path}`))
-        .default;
+  for await (
+    const commandFile of walk(commandDir, {
+      includeDirs: false,
+      includeSymlinks: false,
+      exts: [".ts"],
+    })
+  ) {
+    const command: SlashCommand = (await import(`file:///${commandFile.path}`))
+      .default;
 
     client.slashCommands.set(command.command.name, command);
   }
