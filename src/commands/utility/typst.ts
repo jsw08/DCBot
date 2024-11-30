@@ -103,6 +103,9 @@ const isTypstError = (
 };
 
 const command: SlashCommand = {
+  inDm: true,
+  permissions: "everywhere",
+
   command: new SlashCommandBuilder()
     .setName("typst")
     .setDescription("Compiles the provided typst code to an image.")
