@@ -9,6 +9,9 @@ import { ButtonStyle } from "discord.js";
 import { embed } from "../../utils/embed.ts";
 
 const command: SlashCommand = {
+  inDm: true,
+  permissions: "everywhere",
+
   command: new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Show's the bot's ping"),

@@ -19,6 +19,8 @@ const contentTypes: string[] = imageFileTypes.map((v) =>
 );
 const command: SlashCommand = {
   permissions: "select_few",
+  inDm: true,
+
   command: new SlashCommandBuilder()
     .setName("sexy-up")
     .setDescription("Upload a sexy picture to the server.")

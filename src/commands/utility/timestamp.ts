@@ -1,8 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import { SlashCommand } from "../../commandLoader.ts";
 import { embed } from "../../utils/embed.ts";
-import { Interaction } from "discord.js";
-import { InteractionResponse } from "discord.js";
 import { ChatInputCommandInteraction } from "discord.js";
 
 const errorMessage = (
@@ -17,6 +15,9 @@ const errorMessage = (
 };
 
 const command: SlashCommand = {
+  inDm: true,
+  permissions: "everywhere",
+
   command: new SlashCommandBuilder()
     .setName("time")
     .setDescription("Generate a discord-timestamp.")
