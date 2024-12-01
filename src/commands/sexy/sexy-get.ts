@@ -119,13 +119,11 @@ const sexyMfWasntFoundEmbed = (
 
 const subCommandCommon = (
   subc: SlashCommandSubcommandBuilder,
-  idPrefix: string,
   requiredCommands?: (
     arg0: SlashCommandSubcommandBuilder,
   ) => SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder => {
   subc
-    .setName(idPrefix)
     .addStringOption((opt) =>
       opt
         .setName(`nickname`)
@@ -142,6 +140,36 @@ const subCommandCommon = (
       )
   );
 };
+const subCommandImage = (
+  subc: SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder =>
+  subCommandCommon(subc, (subc) =>
+    subc
+      .addStringOption((opt) =>
+        opt
+          .setName("image")
+          .setDescription(
+            "View a specific image.",
+          )
+          .setAutocomplete(true)
+          .setRequired(true)
+      ))
+    .setName("image")
+    .setDescription("View a specific sexy image.");
+const subCommandCarousel = (
+  subc: SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder =>
+  subCommandCommon(subc)
+    .setDescription("Display all sexy images in a carousel.")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("page")
+        .setDescription(
+          "Sets the default page for the carousel. (default: 0)",
+        )
+        .setAutocomplete(true)
+    )
+    .setName("carousel");
 
 const command: SlashCommand = {
   inDm: true,
@@ -152,32 +180,8 @@ const command: SlashCommand = {
     .setDescription(
       "Retrieves an not-so appealing image from the server's file system.",
     )
-    .addSubcommand((subc) =>
-      subCommandCommon(subc, "image", (subc) =>
-        subc
-          .addStringOption((opt) =>
-            opt
-              .setName("image_input")
-              .setDescription(
-                "View a specific image.",
-              )
-              .setAutocomplete(true)
-              .setRequired(true)
-          ))
-        .setDescription("View a specific sexy image.")
-    )
-    .addSubcommand((subc) =>
-      subCommandCommon(subc, "carousel")
-        .setDescription("Display all sexy images in a carousel.")
-        .addIntegerOption((opt) =>
-          opt
-            .setName("page")
-            .setDescription(
-              "Sets the default page for the carousel. (default: 0)",
-            )
-            .setAutocomplete(true)
-        )
-    ),
+    .addSubcommand(subCommandImage)
+    .addSubcommand(subCommandCarousel),
 
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
@@ -230,6 +234,7 @@ const command: SlashCommand = {
       ephemeral: pub == null ? true : !pub,
     });
   },
+
   button: async (interaction: ButtonInteraction) => {
     const id = interaction.customId;
     const command = id.split("_")[2];
@@ -257,6 +262,7 @@ const command: SlashCommand = {
       });
     }
   },
+
   autocomplete: async (interaction: AutocompleteInteraction) => {
     const focusedOption = interaction.options.getFocused(true);
     const nickname404 = async () =>
