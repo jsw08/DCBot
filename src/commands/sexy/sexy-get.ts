@@ -15,6 +15,7 @@ import { embed } from "$utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
 import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
+import { SlashCommandSubcommandBuilder } from "discord.js";
 
 const getSexyImages = async (
   nickname: string,
@@ -38,6 +39,7 @@ const getSexyImages = async (
   }
   return images;
 };
+
 const paginatorRow = (
   nickname: string,
   userId: string,
@@ -73,6 +75,7 @@ const paginatorRow = (
     arrowButton("r"),
   );
 };
+
 const imagesPageProps = (
   images: string[][],
   nickname: string,
@@ -114,58 +117,83 @@ const sexyMfWasntFoundEmbed = (
     ephemeral: true,
   });
 
+const subCommandCommon = (
+  subc: SlashCommandSubcommandBuilder,
+  idPrefix: string,
+  requiredCommands?: (
+    arg0: SlashCommandSubcommandBuilder,
+  ) => SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder => {
+  subc
+    .setName(idPrefix)
+    .addStringOption((opt) =>
+      opt
+        .setName(`nickname`)
+        .setDescription("The nickname of the sexy mf.")
+        .setAutocomplete(true)
+        .setRequired(true)
+    );
+  subc = requiredCommands ? requiredCommands(subc) : subc;
+  return subc.addBooleanOption((opt) =>
+    opt
+      .setName(`public`)
+      .setDescription(
+        "This option makes the response visible to all, disabled by default.",
+      )
+  );
+};
+
 const command: SlashCommand = {
   inDm: true,
   permissions: "select_few",
 
   command: new SlashCommandBuilder()
-    .setName("sexy-get")
+    .setName("sexy")
     .setDescription(
       "Retrieves an not-so appealing image from the server's file system.",
     )
-    .addStringOption((opt) =>
-      opt
-        .setName("nickname")
-        .setDescription("The nickname of the sexy mf.")
-        .setAutocomplete(true)
-        .setRequired(true)
+    .addSubcommand((subc) =>
+      subCommandCommon(subc, "image", (subc) =>
+        subc
+          .addStringOption((opt) =>
+            opt
+              .setName("image_input")
+              .setDescription(
+                "View a specific image.",
+              )
+              .setAutocomplete(true)
+              .setRequired(true)
+          ))
+        .setDescription("View a specific sexy image.")
     )
-    .addStringOption((opt) =>
-      opt
-        .setName("image")
-        .setDescription(
-          "View a specific image instead of a carousel; this takes priority over the page option.",
-        )
-        .setAutocomplete(true)
-    )
-    .addIntegerOption((opt) =>
-      opt
-        .setName("page")
-        .setDescription(
-          "Sets the default page for the carousel. This is not needed when overwriting the image. (default: 0)",
-        )
-        .setAutocomplete(true)
-    )
-    .addBooleanOption((opt) =>
-      opt
-        .setName("public")
-        .setDescription(
-          "This option makes the response visible to all, disabled by default.",
+    .addSubcommand((subc) =>
+      subCommandCommon(subc, "carousel")
+        .setDescription("Display all sexy images in a carousel.")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("page")
+            .setDescription(
+              "Sets the default page for the carousel. (default: 0)",
+            )
+            .setAutocomplete(true)
         )
     ),
+
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
     const page = interaction.options.getInteger("page");
-    const image = interaction.options.getString("image");
+    const image = interaction.options.getString("image_input");
     const pub = interaction.options.getBoolean("public");
 
-    if (!nickname || nickname === "") {
+    const subc = interaction.options.getSubcommand(true);
+
+    if (!nickname || nickname === "" || subc === "image" && image === "") {
       sexyMfWasntFoundEmbed(interaction);
       return;
     }
 
     let images: string[][] = [];
-    if (image) {
+    if (image && subc === "image") {
       try {
         await Deno.lstat(
           join(
@@ -217,7 +245,6 @@ const command: SlashCommand = {
       }
 
       const length = images.length - 1;
-      console.log(length, page);
       if (page > length - 1) page = length;
 
       await interaction.update({
@@ -247,7 +274,7 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
-        const image = interaction.options.getString("image");
+        const image = interaction.options.getString("image_input");
 
         if (image) {
           await interaction.respond([{
@@ -295,7 +322,7 @@ const command: SlashCommand = {
         );
         break;
       }
-      case "image": {
+      case "image_input": {
         const nickname = interaction.options.getString("nickname");
 
         if (!nickname) {

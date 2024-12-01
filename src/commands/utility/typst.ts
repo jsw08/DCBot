@@ -5,7 +5,11 @@ import {
   TextInputBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
-import { TextInputStyle, AttachmentBuilder, ModalActionRowComponentBuilder } from "discord.js";
+import {
+  AttachmentBuilder,
+  ModalActionRowComponentBuilder,
+  TextInputStyle,
+} from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { basename } from "@std/path/basename";
 import { Buffer } from "node:buffer";
@@ -27,6 +31,18 @@ try {
   typstInstalled = false;
 }
 
+type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
+type TypstSuccess = {
+  asset: AttachmentBuilder;
+  imageName: string;
+  deleteFile: () => void;
+};
+const isTypstError = (
+  result: TypstError | TypstSuccess,
+): result is TypstError => {
+  return (result as TypstError).error !== undefined;
+};
+
 const typstModal = (attachFile: boolean) => {
   const typstInput = new TextInputBuilder()
     .setCustomId("typst")
@@ -42,18 +58,20 @@ const typstModal = (attachFile: boolean) => {
     .addComponents(inputRow);
 };
 
-type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
-type TypstSuccess = {
-  asset: AttachmentBuilder;
-  imageName: string;
-  deleteFile: () => void;
-};
 const typstRender = async (
   input: string,
   outputPath: string,
 ): Promise<void | TypstError> => {
   const typstCommand = new Deno.Command("typst", {
-    args: ["compile", "--root", import.meta.dirname!, "-f", "png", "-", outputPath],
+    args: [
+      "compile",
+      "--root",
+      import.meta.dirname!,
+      "-f",
+      "png",
+      "-",
+      outputPath,
+    ],
     stdin: "piped",
     stderr: "piped",
   });
@@ -99,11 +117,6 @@ const typstMessage = async (
     deleteFile: async () => await Deno.remove(tempImageFile),
   };
 };
-const isTypstError = (
-  result: TypstError | TypstSuccess,
-): result is TypstError => {
-  return (result as TypstError).error !== undefined;
-};
 
 const command: SlashCommand = {
   inDm: true,
@@ -112,24 +125,27 @@ const command: SlashCommand = {
   command: new SlashCommandBuilder()
     .setName("typst")
     .setDescription("Compiles typst code.")
-    .addSubcommand(subc => subc
-      .setName("inline")
-      .setDescription("Compiles the given typst-oneline code to an image.")
-      .addStringOption((opts) =>
-	opts
-	  .setName("code")
-	  .setDescription("Provide typst code.")
-	  .setRequired(true)	
-    ))
-    .addSubcommand(subc => subc
-      .setName("multiline")
-      .setDescription("Compiles the given typst code to an image.")
-      .addBooleanOption(opts => opts
-	.setName("file")
-	.setDescription("Attaches the given typst code as a file.")
-      )
+    .addSubcommand((subc) =>
+      subc
+        .setName("inline")
+        .setDescription("Compiles the given typst-oneline code to an image.")
+        .addStringOption((opts) =>
+          opts
+            .setName("code")
+            .setDescription("Provide typst code.")
+            .setRequired(true)
+        )
     )
-  ,
+    .addSubcommand((subc) =>
+      subc
+        .setName("multiline")
+        .setDescription("Compiles the given typst code to an image.")
+        .addBooleanOption((opts) =>
+          opts
+            .setName("file")
+            .setDescription("Attaches the given typst code as a file.")
+        )
+    ),
   execute: async (interaction) => {
     if (!typstInstalled) {
       interaction.reply({
@@ -144,8 +160,10 @@ const command: SlashCommand = {
     }
 
     if (interaction.options.getSubcommand(true) === "multiline") {
-      await interaction.showModal(typstModal(interaction.options.getBoolean("file") ?? false));
-      return
+      await interaction.showModal(
+        typstModal(interaction.options.getBoolean("file") ?? false),
+      );
+      return;
     }
 
     const inlineTypst = interaction.options.getString("code");
@@ -222,16 +240,18 @@ const command: SlashCommand = {
 
     const files: AttachmentBuilder[] = [typst.asset];
     if (attachFile) {
-      const typstFile = new AttachmentBuilder(Buffer.from(new TextEncoder().encode(input.value)));
-      typstFile.setName("main.typ")
+      const typstFile = new AttachmentBuilder(
+        Buffer.from(new TextEncoder().encode(input.value)),
+      );
+      typstFile.setName("main.typ");
       files.push(typstFile);
-    } 
-    console.log(!attachFile)
+    }
+    console.log(!attachFile);
     await interaction.followUp({
       files: files,
       embeds: attachFile ? [] : [embed({
-	kindOfEmbed: "success"
-      })]
+        kindOfEmbed: "success",
+      })],
     });
   },
 };
