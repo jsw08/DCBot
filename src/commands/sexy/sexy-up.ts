@@ -19,7 +19,7 @@ const command: SlashCommand = {
   inDm: true,
 
   command: new SlashCommandBuilder()
-    .setName("sexy-up")
+    .setName("sexy-upload")
     .setDescription("Upload a sexy picture to the server.")
     .addStringOption((opt) =>
       opt

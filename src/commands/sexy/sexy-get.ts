@@ -186,7 +186,7 @@ const command: SlashCommand = {
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
     const page = interaction.options.getInteger("page");
-    const image = interaction.options.getString("image_input");
+    const image = interaction.options.getString("image");
     const pub = interaction.options.getBoolean("public");
 
     const subc = interaction.options.getSubcommand(true);
@@ -197,7 +197,7 @@ const command: SlashCommand = {
     }
 
     let images: string[][] = [];
-    if (image && subc === "image") {
+    if (subc === "image" && image) {
       try {
         await Deno.lstat(
           join(
@@ -271,6 +271,11 @@ const command: SlashCommand = {
         value: "",
       }]);
 
+    const image404 = async () => 
+      await interaction.respond([{
+	name: "That sexy mf doesn't have any images.", value: ""
+      }])
+
     switch (focusedOption.name) {
       case "nickname": {
         await interaction.respond(
@@ -280,16 +285,6 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
-        const image = interaction.options.getString("image_input");
-
-        if (image) {
-          await interaction.respond([{
-            name:
-              "You cannot specify a page if an image has already been selected.",
-            value: 0,
-          }]);
-          return;
-        }
 
         if (!nickname) {
           await nickname404();
@@ -298,7 +293,7 @@ const command: SlashCommand = {
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          await nickname404();
+	  await image404()
           break;
         }
 
@@ -328,7 +323,7 @@ const command: SlashCommand = {
         );
         break;
       }
-      case "image_input": {
+      case "image": {
         const nickname = interaction.options.getString("nickname");
 
         if (!nickname) {
@@ -338,7 +333,7 @@ const command: SlashCommand = {
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          nickname404();
+          image404();
           break;
         }
 
