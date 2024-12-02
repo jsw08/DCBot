@@ -271,10 +271,11 @@ const command: SlashCommand = {
         value: "",
       }]);
 
-    const image404 = async () => 
+    const image404 = async () =>
       await interaction.respond([{
-	name: "That sexy mf doesn't have any images.", value: ""
-      }])
+        name: "That sexy mf doesn't have any images.",
+        value: "",
+      }]);
 
     switch (focusedOption.name) {
       case "nickname": {
@@ -293,7 +294,7 @@ const command: SlashCommand = {
 
         const images = await getSexyImages(nickname);
         if (!images) {
-	  await image404()
+          await image404();
           break;
         }
 

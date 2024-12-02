@@ -62,10 +62,11 @@ const main = async (client: Client) => {
       {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();
-          const inGuild = v.permissions !== "nowhere";
+          //const inGuild = v.permissions !== "nowhere";
 
           commandBuilder.contexts = [
-            ...(inGuild ? [0] : []),
+            //...(inGuild ? [0] : []),
+            0,
             ...(v.inDm ?? true ? [1, 2] : []),
           ];
 
