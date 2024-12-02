@@ -15,6 +15,7 @@ import { embed } from "$utils/embed.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
 import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
+import { SlashCommandSubcommandBuilder } from "discord.js";
 
 const getSexyImages = async (
   nickname: string,
@@ -38,6 +39,7 @@ const getSexyImages = async (
   }
   return images;
 };
+
 const paginatorRow = (
   nickname: string,
   userId: string,
@@ -73,6 +75,7 @@ const paginatorRow = (
     arrowButton("r"),
   );
 };
+
 const imagesPageProps = (
   images: string[][],
   nickname: string,
@@ -114,58 +117,87 @@ const sexyMfWasntFoundEmbed = (
     ephemeral: true,
   });
 
+const subCommandCommon = (
+  subc: SlashCommandSubcommandBuilder,
+  requiredCommands?: (
+    arg0: SlashCommandSubcommandBuilder,
+  ) => SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder => {
+  subc
+    .addStringOption((opt) =>
+      opt
+        .setName(`nickname`)
+        .setDescription("The nickname of the sexy mf.")
+        .setAutocomplete(true)
+        .setRequired(true)
+    );
+  subc = requiredCommands ? requiredCommands(subc) : subc;
+  return subc.addBooleanOption((opt) =>
+    opt
+      .setName(`public`)
+      .setDescription(
+        "This option makes the response visible to all, disabled by default.",
+      )
+  );
+};
+const subCommandImage = (
+  subc: SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder =>
+  subCommandCommon(subc, (subc) =>
+    subc
+      .addStringOption((opt) =>
+        opt
+          .setName("image")
+          .setDescription(
+            "View a specific image.",
+          )
+          .setAutocomplete(true)
+          .setRequired(true)
+      ))
+    .setName("image")
+    .setDescription("View a specific sexy image.");
+const subCommandCarousel = (
+  subc: SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder =>
+  subCommandCommon(subc)
+    .setDescription("Display all sexy images in a carousel.")
+    .addIntegerOption((opt) =>
+      opt
+        .setName("page")
+        .setDescription(
+          "Sets the default page for the carousel. (default: 0)",
+        )
+        .setAutocomplete(true)
+    )
+    .setName("carousel");
+
 const command: SlashCommand = {
   inDm: true,
   permissions: "select_few",
 
   command: new SlashCommandBuilder()
-    .setName("sexy-get")
+    .setName("sexy")
     .setDescription(
       "Retrieves an not-so appealing image from the server's file system.",
     )
-    .addStringOption((opt) =>
-      opt
-        .setName("nickname")
-        .setDescription("The nickname of the sexy mf.")
-        .setAutocomplete(true)
-        .setRequired(true)
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName("image")
-        .setDescription(
-          "View a specific image instead of a carousel; this takes priority over the page option.",
-        )
-        .setAutocomplete(true)
-    )
-    .addIntegerOption((opt) =>
-      opt
-        .setName("page")
-        .setDescription(
-          "Sets the default page for the carousel. This is not needed when overwriting the image. (default: 0)",
-        )
-        .setAutocomplete(true)
-    )
-    .addBooleanOption((opt) =>
-      opt
-        .setName("public")
-        .setDescription(
-          "This option makes the response visible to all, disabled by default.",
-        )
-    ),
+    .addSubcommand(subCommandImage)
+    .addSubcommand(subCommandCarousel),
+
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname");
     const page = interaction.options.getInteger("page");
     const image = interaction.options.getString("image");
     const pub = interaction.options.getBoolean("public");
 
-    if (!nickname || nickname === "") {
+    const subc = interaction.options.getSubcommand(true);
+
+    if (!nickname || nickname === "" || subc === "image" && image === "") {
       sexyMfWasntFoundEmbed(interaction);
       return;
     }
 
     let images: string[][] = [];
-    if (image) {
+    if (subc === "image" && image) {
       try {
         await Deno.lstat(
           join(
@@ -202,6 +234,7 @@ const command: SlashCommand = {
       ephemeral: pub == null ? true : !pub,
     });
   },
+
   button: async (interaction: ButtonInteraction) => {
     const id = interaction.customId;
     const command = id.split("_")[2];
@@ -217,7 +250,6 @@ const command: SlashCommand = {
       }
 
       const length = images.length - 1;
-      console.log(length, page);
       if (page > length - 1) page = length;
 
       await interaction.update({
@@ -230,6 +262,7 @@ const command: SlashCommand = {
       });
     }
   },
+
   autocomplete: async (interaction: AutocompleteInteraction) => {
     const focusedOption = interaction.options.getFocused(true);
     const nickname404 = async () =>
@@ -237,6 +270,11 @@ const command: SlashCommand = {
         name: "That sexy mf wasn't found :/",
         value: "",
       }]);
+
+    const image404 = async () => 
+      await interaction.respond([{
+	name: "That sexy mf doesn't have any images.", value: ""
+      }])
 
     switch (focusedOption.name) {
       case "nickname": {
@@ -247,16 +285,6 @@ const command: SlashCommand = {
       }
       case "page": {
         const nickname = interaction.options.getString("nickname");
-        const image = interaction.options.getString("image");
-
-        if (image) {
-          await interaction.respond([{
-            name:
-              "You cannot specify a page if an image has already been selected.",
-            value: 0,
-          }]);
-          return;
-        }
 
         if (!nickname) {
           await nickname404();
@@ -265,7 +293,7 @@ const command: SlashCommand = {
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          await nickname404();
+	  await image404()
           break;
         }
 
@@ -305,7 +333,7 @@ const command: SlashCommand = {
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          nickname404();
+          image404();
           break;
         }
 
