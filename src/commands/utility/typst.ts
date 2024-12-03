@@ -43,18 +43,18 @@ const isTypstError = (
   return (result as TypstError).error !== undefined;
 };
 
-const typstModal = (attachFile: boolean) => {
-  const typstInput = new TextInputBuilder()
-    .setCustomId("typst")
+const codeModal = (attachFile: boolean) => {
+  const codeInput = new TextInputBuilder()
+    .setCustomId("code")
     .setLabel("Typst code.")
     .setStyle(TextInputStyle.Paragraph);
 
   const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(typstInput);
+    .addComponents(codeInput);
 
   return new ModalBuilder()
     .setTitle("Typst editor.")
-    .setCustomId(`typst_${attachFile}`)
+    .setCustomId(`${command.command.name}_${attachFile}`)
     .addComponents(inputRow);
 };
 
@@ -161,7 +161,7 @@ const command: SlashCommand = {
 
     if (interaction.options.getSubcommand(true) === "multiline") {
       await interaction.showModal(
-        typstModal(interaction.options.getBoolean("file") ?? false),
+        codeModal(interaction.options.getBoolean("file") ?? false),
       );
       return;
     }
@@ -209,8 +209,8 @@ const command: SlashCommand = {
   },
   modal: async (interaction) => {
     await interaction.deferReply();
-    const input = interaction.fields.getField("typst");
-    const attachFile = interaction.customId === "typst_true";
+    const input = interaction.fields.getField("code");
+    const attachFile = interaction.customId === `${command.command.name}_true`;
 
     if (!input) {
       await interaction.followUp({
