@@ -1,17 +1,16 @@
 import {
-ActionRowBuilder,
-  ButtonInteraction,
+  ActionRowBuilder,
   InteractionReplyOptions,
   ModalActionRowComponentBuilder,
   ModalBuilder,
+  ModalSubmitInteraction,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
+  ChatInputCommandInteraction
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
-import { SlashCommandSubcommandBuilder } from "discord.js";
-import { Options } from "discord.js";
 
 const codeReplyOptions = (
   input: string,
@@ -35,20 +34,20 @@ const codeReplyOptions = (
 });
 const codeHandler = async (
   code: string | null,
-  ephemeral?: boolean,
-): Promise<InteractionReplyOptions> => {
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  showOutput?: boolean
+): Promise<void> => {
   const results: string[] = [];
-  const ephemeralObject = ephemeral ? { ephemeral: true } : {};
 
   if (!code) {
-    return {
+    await interaction.followUp({
       embeds: [embed({
         kindOfEmbed: "error",
         title: "Error!",
         message: "Please provide a code string.",
       })],
-      ...ephemeralObject,
-    };
+    });
+    return;
   }
 
   try {
@@ -62,13 +61,10 @@ const codeHandler = async (
       results.push(await eval(code.replace("console.log", "results.push")));
     }
 
-    return {
-      ...(codeReplyOptions(code, results)),
-      ...ephemeralObject,
-    };
+    if (showOutput === undefined || showOutput) await interaction.followUp(codeReplyOptions(code, results));
   } catch (e) {
     const err = e as Error;
-    return {
+    await interaction.followUp({
       embeds: [embed({
         title: "Error!",
         message: `\`\`\`js\n${err.name}: ${err.message}\nLine: ${
@@ -78,8 +74,7 @@ const codeHandler = async (
         }\`\`\``,
         kindOfEmbed: "error",
       })],
-      ...ephemeralObject,
-    };
+    });
   }
 };
 
@@ -123,22 +118,23 @@ const command: SlashCommand = {
     ),
   execute: async (interaction) => {
     const code = interaction.options.getString("code");
-    const subc = interaction.options.getSubcommand(true)
+    const subc = interaction.options.getSubcommand(true);
 
     if (subc === "multiline") {
-      interaction.showModal(codeModal())
-      return
+      interaction.showModal(codeModal());
+      console.log("MODAL")
+      return;
     }
 
-    interaction.deferReply()
+    await interaction.deferReply();
     await codeHandler(code, interaction);
   },
-  modal: async interaction => {
-    interaction.deferReply();
+  modal: async (interaction) => {
+    await interaction.deferReply();
 
-    const code = interaction.fields.getField("code")
-    await codeHandler(code.value, interaction)
-  }
+    const code = interaction.fields.getField("code");
+    await codeHandler(code.value, interaction);
+  },
 };
 
 export default command;
