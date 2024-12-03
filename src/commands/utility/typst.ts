@@ -13,6 +13,7 @@ import {
 import { embed } from "$utils/embed.ts";
 import { basename } from "@std/path/basename";
 import { Buffer } from "node:buffer";
+import { SlashCommandSubcommandBuilder } from "discord.js";
 
 let typstInstalled = true;
 try {
@@ -43,7 +44,7 @@ const isTypstError = (
   return (result as TypstError).error !== undefined;
 };
 
-const codeModal = (attachFile: boolean) => {
+const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
   const codeInput = new TextInputBuilder()
     .setCustomId("code")
     .setLabel("Typst code.")
@@ -54,12 +55,13 @@ const codeModal = (attachFile: boolean) => {
 
   return new ModalBuilder()
     .setTitle("Typst editor.")
-    .setCustomId(`${command.command.name}_${attachFile}`)
+    .setCustomId(`${command.command.name}_${Number(transparantBackground)}_${Number(attachFile)}`)
     .addComponents(inputRow);
 };
 
 const typstRender = async (
   input: string,
+  transparant: boolean,
   outputPath: string,
 ): Promise<void | TypstError> => {
   const typstCommand = new Deno.Command("typst", {
@@ -82,7 +84,8 @@ const typstRender = async (
   try {
     await typstWriter.write(new TextEncoder()
       .encode(`
-	#set page(height: auto, width: auto, margin: 1em)
+	#set page(height: auto, width: auto, margin: 1em${transparant ? ", fill: none" : ""})
+	${transparant ? "#set text(fill: white)" : ""}
 	${input}
       `));
     await typstWriter.close();
@@ -102,13 +105,14 @@ const typstRender = async (
 };
 const typstMessage = async (
   input: string,
+  transparant: boolean
 ): Promise<TypstSuccess | TypstError> => {
   const tempImageFile = await Deno.makeTempFile({
     prefix: "typst_",
     suffix: ".png",
   });
 
-  const typst = await typstRender(input, tempImageFile);
+  const typst = await typstRender(input, transparant, tempImageFile);
   if (typst !== undefined) return typst;
 
   return {
@@ -118,6 +122,20 @@ const typstMessage = async (
   };
 };
 
+const commonCommands = (
+  subc: SlashCommandSubcommandBuilder,
+  reqCmds?: (
+    subc: SlashCommandSubcommandBuilder,
+  ) => SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder => ((reqCmds ? reqCmds(subc) : subc)
+  .addBooleanOption((opts) =>
+    opts
+      .setName("transparant")
+      .setDescription(
+        "Makes the png background transparant. ONLY COMPATIBLE WITH DISCORD DARK MODE.",
+      )
+  ));
+
 const command: SlashCommand = {
   inDm: true,
   permissions: "everywhere",
@@ -126,18 +144,19 @@ const command: SlashCommand = {
     .setName("typst")
     .setDescription("Compiles typst code.")
     .addSubcommand((subc) =>
-      subc
+      commonCommands(subc, (subc) =>
+        subc
+          .addStringOption((opts) =>
+            opts
+              .setName("code")
+              .setDescription("Provide typst code.")
+              .setRequired(true)
+          ))
         .setName("inline")
         .setDescription("Compiles the given typst-oneline code to an image.")
-        .addStringOption((opts) =>
-          opts
-            .setName("code")
-            .setDescription("Provide typst code.")
-            .setRequired(true)
-        )
     )
     .addSubcommand((subc) =>
-      subc
+      commonCommands(subc)
         .setName("multiline")
         .setDescription("Compiles the given typst code to an image.")
         .addBooleanOption((opts) =>
@@ -159,9 +178,10 @@ const command: SlashCommand = {
       return;
     }
 
+    const transparantBackground = interaction.options.getBoolean("transparant") ?? true
     if (interaction.options.getSubcommand(true) === "multiline") {
       await interaction.showModal(
-        codeModal(interaction.options.getBoolean("file") ?? false),
+        codeModal(transparantBackground, interaction.options.getBoolean("file") ?? false)
       );
       return;
     }
@@ -179,7 +199,7 @@ const command: SlashCommand = {
       return;
     }
 
-    const typst = await typstMessage(inlineTypst);
+    const typst = await typstMessage(inlineTypst, transparantBackground);
     if (isTypstError(typst)) {
       interaction.reply({
         embeds: [embed({
@@ -196,11 +216,6 @@ const command: SlashCommand = {
     }
 
     await interaction.reply({
-      embeds: [
-        embed({
-          kindOfEmbed: "success",
-        }).setImage(`attachment:///${typst.imageName}`),
-      ],
       files: [typst.asset],
       ephemeral: false,
     });
@@ -210,7 +225,8 @@ const command: SlashCommand = {
   modal: async (interaction) => {
     await interaction.deferReply();
     const input = interaction.fields.getField("code");
-    const attachFile = interaction.customId === `${command.command.name}_true`;
+    const attachFile = interaction.customId.split("_")[2] === "1";
+    const transparantBackground = interaction.customId.split("_")[1] === "1";
 
     if (!input) {
       await interaction.followUp({
@@ -223,7 +239,7 @@ const command: SlashCommand = {
       return;
     }
 
-    const typst = await typstMessage(input.value);
+    const typst = await typstMessage(input.value, transparantBackground);
     if (isTypstError(typst)) {
       interaction.followUp({
         embeds: [embed({
@@ -249,9 +265,6 @@ const command: SlashCommand = {
     console.log(!attachFile);
     await interaction.followUp({
       files: files,
-      embeds: attachFile ? [] : [embed({
-        kindOfEmbed: "success",
-      })],
     });
   },
 };
