@@ -15,23 +15,19 @@ import { embed } from "$utils/embed.ts";
 const codeReplyOptions = (
   input: string,
   output: string[],
-): InteractionReplyOptions => ({
+): InteractionReplyOptions => {
+  const bt = "```"
+  const out = output
+  .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
+  .join("\n")
+
+  return {
   embeds: [embed({
     title: "Evaluated code.",
     kindOfEmbed: "success",
-    message: `
-      # Input \n
-      \`\`\`ts\n
-      ${input} 
-      \`\`\`\n
-      # Ouput
-      \`\`\`ts\n${
-      output
-        .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
-        .join("\n")
-    }\`\`\``,
+    message: `# Input ${bt}ts\n${input}\n${bt}\n${output ? `# Output\n${bt}ts\n${out}${bt}` : ""}`
   })],
-});
+}};
 const codeHandler = async (
   code: string | null,
   interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
