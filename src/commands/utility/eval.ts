@@ -1,5 +1,6 @@
 import {
   ActionRowBuilder,
+  ChatInputCommandInteraction,
   InteractionReplyOptions,
   ModalActionRowComponentBuilder,
   ModalBuilder,
@@ -7,31 +8,36 @@ import {
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
-  ChatInputCommandInteraction
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
+import { SlashCommandSubcommandBuilder } from "discord.js";
 
 const codeReplyOptions = (
   input: string,
   output: string[],
 ): InteractionReplyOptions => {
-  const bt = "```"
+  const bt = "```";
   const out = output
-  .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
-  .join("\n")
-  
+    .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
+    .join("\n");
+
   return {
-  embeds: [embed({
-    title: "Evaluated code.",
-    kindOfEmbed: "success",
-    message: `# Input \n${bt}ts\n${input}\n${bt}\n${output.some(v => v !== undefined) ? `# Output\n${bt}ts\n${out}${bt}` : ""}`
-  })],
-}};
+    embeds: [embed({
+      title: "Typescript interpreter.",
+      kindOfEmbed: "success",
+      message: `## Input \n${bt}ts\n${input}\n${bt}\n${
+        output.some((v) => v !== undefined)
+          ? `## Output\n${bt}ts\n${out}${bt}`
+          : ""
+      }`,
+    })],
+  };
+};
 const codeHandler = async (
   code: string | null,
   interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
-  showOutput?: boolean
+  showOutput?: boolean | null,
 ): Promise<void> => {
   const results: string[] = [];
 
@@ -50,14 +56,16 @@ const codeHandler = async (
     if (code.includes("await")) {
       results.push(
         await eval(`(async () => {
-	      ${code.replace("console.log", "results.push")}
+	      ${code.replace(/console\.\w+/g, "results.push")}
 	  })()`),
       );
     } else {
-      results.push(await eval(code.replace("console.log", "results.push")));
+      results.push(await eval(code.replace(/console\.\w+/g, "results.push")));
     }
 
-    if (showOutput === undefined || showOutput) await interaction.followUp(codeReplyOptions(code, results));
+    if (showOutput === undefined || showOutput === null || showOutput) {
+      await interaction.followUp(codeReplyOptions(code, results));
+    }
   } catch (e) {
     const err = e as Error;
     await interaction.followUp({
@@ -74,9 +82,9 @@ const codeHandler = async (
   }
 };
 
-const codeModal = () => {
+const codeModal = (output: boolean | null) => {
   const codeInput = new TextInputBuilder()
-    .setCustomId("code")
+    .setCustomId(`code`)
     .setLabel("Typescript code.")
     .setStyle(TextInputStyle.Paragraph);
 
@@ -85,9 +93,23 @@ const codeModal = () => {
 
   return new ModalBuilder()
     .setTitle("Typescript editor.")
-    .setCustomId(`${command.command.name}`)
+    .setCustomId(`${command.command.name}_${output ?? true}`)
     .addComponents(inputRow);
 };
+
+const commonCommands = (
+  subc: SlashCommandSubcommandBuilder,
+  reqCmds?: (
+    subc: SlashCommandSubcommandBuilder,
+  ) => SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder => ((reqCmds ? reqCmds(subc) : subc)
+  .addBooleanOption((opts) =>
+    opts
+      .setName("output")
+      .setDescription(
+        "Display your input and the command console.logs in chat.",
+      )
+  ));
 
 const command: SlashCommand = {
   inDm: true,
@@ -97,39 +119,41 @@ const command: SlashCommand = {
     .setName("ts")
     .setDescription("Runs the provided javascript code.")
     .addSubcommand((subc) =>
-      subc
-        .setName("inline")
-        .setDescription("For your beautiful ts-oneliners.")
-        .addStringOption((opts) =>
-          opts
-            .setName("code")
-            .setDescription("Write your javascript code here.")
-            .setRequired(true)
-        )
+      commonCommands(subc, (subc) =>
+        subc
+          .setName("inline")
+          .setDescription("For your beautiful ts-oneliners.")
+          .addStringOption((opts) =>
+            opts
+              .setName("code")
+              .setDescription("Write your javascript code here.")
+              .setRequired(true)
+          ))
     )
     .addSubcommand((subc) =>
-      subc
+      commonCommands(subc)
         .setName("multiline")
         .setDescription("For your longer codepieces.")
     ),
   execute: async (interaction) => {
     const code = interaction.options.getString("code");
     const subc = interaction.options.getSubcommand(true);
+    const output = interaction.options.getBoolean("output");
 
     if (subc === "multiline") {
-      interaction.showModal(codeModal());
-      console.log("MODAL")
+      interaction.showModal(codeModal(output));
       return;
     }
 
     await interaction.deferReply();
-    await codeHandler(code, interaction);
+    await codeHandler(code, interaction, output);
   },
   modal: async (interaction) => {
     await interaction.deferReply();
 
+    const output = interaction.customId === `${command.command.name}_true`
     const code = interaction.fields.getField("code");
-    await codeHandler(code.value, interaction);
+    await codeHandler(code.value, interaction, output);
   },
 };
 
