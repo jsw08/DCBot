@@ -20,12 +20,12 @@ const codeReplyOptions = (
   const out = output
   .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
   .join("\n")
-
+  
   return {
   embeds: [embed({
     title: "Evaluated code.",
     kindOfEmbed: "success",
-    message: `# Input ${bt}ts\n${input}\n${bt}\n${output ? `# Output\n${bt}ts\n${out}${bt}` : ""}`
+    message: `# Input \n${bt}ts\n${input}\n${bt}\n${output.some(v => v !== undefined) ? `# Output\n${bt}ts\n${out}${bt}` : ""}`
   })],
 }};
 const codeHandler = async (
