@@ -13,15 +13,16 @@ export function checkAccess(
   guildId?: string | null,
   commandScope?: Permissions | null,
 ): boolean {
-  if (!config.private.enabled) return true;
-  if (config.private.user_ids.includes(userId)) return true;
-  if (guildId && commandScope) {
-    return commandScope === "everywhere" ||
-      (commandScope === "select_few" &&
-        config.private.guild_ids.includes(guildId));
+  if (!config.private.enabled || config.private.user_ids.includes(userId)) {
+    return true;
   }
+  if (guildId && commandScope === "nowhere") return false;
 
-  return false;
+  return guildId && commandScope
+    ? commandScope === "everywhere" ||
+      (commandScope === "select_few" &&
+        config.private.guild_ids.includes(guildId))
+    : false;
 }
 
 export const accessDeniedEmbed = embed({
