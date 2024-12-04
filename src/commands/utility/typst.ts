@@ -1,20 +1,21 @@
 import {
   ActionRowBuilder,
-  ModalBuilder,
-  SlashCommandBuilder,
-  TextInputBuilder,
-} from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import {
   AttachmentBuilder,
+  ChatInputCommandInteraction,
   ModalActionRowComponentBuilder,
-  TextInputStyle,
+  ModalBuilder,
+  ModalSubmitInteraction,
+  SlashCommandBuilder,
+  SlashCommandSubcommandBuilder, 
+  TextInputBuilder,
+  TextInputStyle, 
 } from "discord.js";
-import { embed } from "$utils/embed.ts";
-import { basename } from "@std/path/basename";
 import { Buffer } from "node:buffer";
-import { SlashCommandSubcommandBuilder } from "discord.js";
+import { SlashCommand } from "$/commandLoader.ts";
+import { basename } from "@std/path/basename";
+import { embed } from "$utils/embed.ts";
 
+// Typst installed check
 let typstInstalled = true;
 try {
   new Deno.Command("typst", {
@@ -32,6 +33,8 @@ try {
   typstInstalled = false;
 }
 
+
+// Typst running and checking errors
 type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
 type TypstSuccess = {
   asset: AttachmentBuilder;
@@ -42,21 +45,6 @@ const isTypstError = (
   result: TypstError | TypstSuccess,
 ): result is TypstError => {
   return (result as TypstError).error !== undefined;
-};
-
-const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
-  const codeInput = new TextInputBuilder()
-    .setCustomId("code")
-    .setLabel("Typst code.")
-    .setStyle(TextInputStyle.Paragraph);
-
-  const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(codeInput);
-
-  return new ModalBuilder()
-    .setTitle("Typst editor.")
-    .setCustomId(`${command.command.name}_${Number(transparantBackground)}_${Number(attachFile)}`)
-    .addComponents(inputRow);
 };
 
 const typstRender = async (
@@ -122,6 +110,64 @@ const typstMessage = async (
   };
 };
 
+// Interaction handler
+const typstHandler = async (interaction: ChatInputCommandInteraction | ModalSubmitInteraction, input: string, attachFile: boolean, transparantBackground: boolean): Promise<void> => {
+    if (!input) {
+      await interaction.followUp({
+        embeds: [embed({
+          title: "Typst",
+          kindOfEmbed: "error",
+          message: "Please provide a valid input.",
+        })],
+      });
+      return;
+    }
+
+    const typst = await typstMessage(input, transparantBackground);
+    if (isTypstError(typst)) {
+      interaction.followUp({
+        embeds: [embed({
+          title: "Typst",
+          message:
+            `Error while using running typst (${typst.error}).` + typst.errorMsg
+              ? `\`\`\`${typst.errorMsg}\`\`\``
+              : "",
+          kindOfEmbed: "error",
+        })],
+      });
+      return;
+    }
+
+    const files: AttachmentBuilder[] = [typst.asset];
+    if (attachFile) {
+      const typstFile = new AttachmentBuilder(
+        Buffer.from(new TextEncoder().encode(input)),
+      );
+      typstFile.setName("main.typ");
+      files.push(typstFile);
+    }
+    
+    await interaction.followUp({files});
+    typst.deleteFile();
+}
+
+// Typst editor modal
+const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
+  const codeInput = new TextInputBuilder()
+    .setCustomId("code")
+    .setLabel("Typst code.")
+    .setStyle(TextInputStyle.Paragraph);
+
+  const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(codeInput);
+
+  return new ModalBuilder()
+    .setTitle("Typst editor.")
+    .setCustomId(`${command.command.name}_${Number(transparantBackground)}_${Number(attachFile)}`)
+    .addComponents(inputRow);
+};
+
+
 const commonCommands = (
   subc: SlashCommandSubcommandBuilder,
   reqCmds?: (
@@ -167,7 +213,7 @@ const command: SlashCommand = {
     ),
   execute: async (interaction) => {
     if (!typstInstalled) {
-      interaction.reply({
+      await interaction.reply({
         embeds: [embed({
           title: "Typst",
           message:
@@ -186,9 +232,9 @@ const command: SlashCommand = {
       return;
     }
 
-    const inlineTypst = interaction.options.getString("code");
-    if (!inlineTypst) {
-      interaction.reply({
+    const code = interaction.options.getString("code");
+    if (!code) {
+      await interaction.reply({
         embeds: [embed({
           title: "Typst",
           message: "Please provide valid typst code.",
@@ -199,74 +245,16 @@ const command: SlashCommand = {
       return;
     }
 
-    const typst = await typstMessage(inlineTypst, transparantBackground);
-    if (isTypstError(typst)) {
-      interaction.reply({
-        embeds: [embed({
-          title: "Typst",
-          message:
-            `Error while using running typst (${typst.error}).` + typst.errorMsg
-              ? `\`\`\`${typst.errorMsg}\`\`\``
-              : "",
-          kindOfEmbed: "error",
-        })],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    await interaction.reply({
-      files: [typst.asset],
-      ephemeral: false,
-    });
-
-    typst.deleteFile();
+    await interaction.deferReply();
+    await typstHandler(interaction, code, false, transparantBackground)
   },
   modal: async (interaction) => {
-    await interaction.deferReply();
-    const input = interaction.fields.getField("code");
-    const attachFile = interaction.customId.split("_")[2] === "1";
-    const transparantBackground = interaction.customId.split("_")[1] === "1";
+    const file = interaction.customId.split("_")[2] 
+    const transparant = interaction.customId.split("_")[1] 
 
-    if (!input) {
-      await interaction.followUp({
-        embeds: [embed({
-          title: "Typst",
-          kindOfEmbed: "error",
-          message: "Please provide a valid input.",
-        })],
-      });
-      return;
-    }
 
-    const typst = await typstMessage(input.value, transparantBackground);
-    if (isTypstError(typst)) {
-      interaction.followUp({
-        embeds: [embed({
-          title: "Typst",
-          message:
-            `Error while using running typst (${typst.error}).` + typst.errorMsg
-              ? `\`\`\`${typst.errorMsg}\`\`\``
-              : "",
-          kindOfEmbed: "error",
-        })],
-      });
-      return;
-    }
-
-    const files: AttachmentBuilder[] = [typst.asset];
-    if (attachFile) {
-      const typstFile = new AttachmentBuilder(
-        Buffer.from(new TextEncoder().encode(input.value)),
-      );
-      typstFile.setName("main.typ");
-      files.push(typstFile);
-    }
-    console.log(!attachFile);
-    await interaction.followUp({
-      files: files,
-    });
   },
 };
+
 
 export default command;
