@@ -178,8 +178,13 @@ const commonCommands = (
     opts
       .setName("transparant")
       .setDescription(
-        "Makes the png background transparant. ONLY COMPATIBLE WITH DISCORD DARK MODE.",
+        "Makes the png background transparant. ONLY COMPATIBLE WITH DISCORD DARK MODE. (ENABLED)",
       )
+  )
+  .addBooleanOption((opts) =>
+    opts
+      .setName("file")
+      .setDescription("Attaches the given typst code as a file. (DISABLED)")
   ));
 
 const command: SlashCommand = {
@@ -205,11 +210,6 @@ const command: SlashCommand = {
       commonCommands(subc)
         .setName("multiline")
         .setDescription("Compiles the given typst code to an image.")
-        .addBooleanOption((opts) =>
-          opts
-            .setName("file")
-            .setDescription("Attaches the given typst code as a file.")
-        )
     ),
   execute: async (interaction) => {
     if (!typstInstalled) {
@@ -225,9 +225,10 @@ const command: SlashCommand = {
     }
 
     const transparantBackground = interaction.options.getBoolean("transparant") ?? true
+    const includeFile = interaction.options.getBoolean("file") ?? false;
     if (interaction.options.getSubcommand(true) === "multiline") {
       await interaction.showModal(
-        codeModal(transparantBackground, interaction.options.getBoolean("file") ?? false)
+        codeModal(transparantBackground, includeFile)
       );
       return;
     }
@@ -246,7 +247,7 @@ const command: SlashCommand = {
     }
 
     await interaction.deferReply();
-    await typstHandler(interaction, code, transparantBackground, false)
+    await typstHandler(interaction, code, transparantBackground, includeFile)
   },
   modal: async (interaction) => {
     const file = interaction.customId.split("_")[2] === "1" 
