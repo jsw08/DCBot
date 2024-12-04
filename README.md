@@ -11,83 +11,74 @@
 > friends. I have not made it user friendly to install it yourself. It is
 > however licensed under the unlicense so you may use the code however you like.
 
-## Features
+## Commands
+### Utility Commands
+- **Ping**
+  - Command: `ping`
+  - Accessibility: Everyone
+  - Response: "pong lol"
 
-I haven't implemented many commands yet.
+- **Timestamp**
+  - Command: `time`
+  - Accessibility: Everyone
+  - Description: Generates and previews a Discord timestamp.
+  - Parameters:
+    - `time`: REQUIRED string; a JavaScript date string.
+    - `type`: REQUIRED string; the type of Discord timestamp to generate (with autocomplete).
 
-- Utility
-  - Ping
-    - `ping`
-    - Accessible to everyone
-    - Will respond pong lol.
-  - Timestamp
-    - `time`
-    - Accessible to everyone
-    - Will generate and preview a discord timestamp
-    - Parameters
-      - time: REQUIRED: string; A js datestring. 
-      - type: REQUIRED: string with autocomplete; The kind of discord timestamp you'd like to generate. Just a list you can pick from.
-  - Typst: Typst is a language to write scientific papers.
-    - Accessible to everyone.
-    - Will compile your typst code into an png.
+- **Typst**
+  - Description: Compiles Typst code into a PNG image.
+  - Accessibility: Everyone
+  - Commands:
     - `typst inline`
-        - Allows you to enter your typst code into the command parameter.
-        - Parameters
-            - Code: REQUIRED: string; your typst code.
-            - file: bool default false; will attach your typst code as file
-            - transparant: bool default true; will set the background color to transparant and text to white. Not compatible with discords light mode.
+      - Parameters:
+        - `Code`: REQUIRED string; your Typst code.
+        - `file`: bool (default: false); attaches your Typst code as a file.
+        - `transparent`: bool (default: true); sets the background to transparent and text to white (not compatible with Discord's light mode).
     - `typst multiline`
-        - Same as typst inline but it'll open a modal with a 'textarea'.
-        - Parameters
-            - file: bool default false; will attach your typst code as file
-            - transparant: bool default true; will set the background color to transparant and text to white. Not compatible with discords light mode.
-  - Typescript interpreter
-    - Only accessible to configured userids.
+      - Same as `typst inline`, but opens a modal with a textarea for multi-line input.
+
+
+- **TypeScript Interpreter**
+  - Accessibility: Configured user IDs only.
+  - Commands:
     - `ts inline`
-      - Runs your typescript oneliners.
-      - Parameters
-        - code: REQUIRED: string; ts code.
-        - output: bool default true; replies an public message with the input and (if there are) outputs (console.logs etc). It will delete the command is loading message if you don't interact with the discordjs api.
+      - Parameters:
+        - `code`: REQUIRED string; TypeScript code.
+        - `output`: bool (default: true); replies with the input and outputs (e.g., console logs).
     - `ts multiline`
-      - Opens up a modal to write multiple lines of typescript code (max 4000 chars).
-      - Parameters
-        - output: bool default true; replies an public message with the input and (if there are) outputs (console.logs etc). It will delete the command is loading message if you don't interact with the discordjs api.
-- Sexy commands: this group of commands allows me and my friends to save
-  (unappealing) images of eachother in a central place and send them as memes.
-  - Only accessible to users in a configured guild or userid
+      - Opens a modal for multi-line TypeScript code (max 4000 characters).
+
+### Sexy Commands
+These commands allows me and my friends to save and share unappealing images of each other as memes.
+- Accessibility: Users in a configured guild or user ID only.
+- Commands:
   - `sexy carousel`
-    - It will display every image found of a person in a carousel. You can use the page parameter to specify the starting page. Everyone with access (either at server or user level) is able to scroll through the carousel.
-    - Parameters
-      - Nickname: REQUIRED string with autocomplete; used to specify from what user it should grep
-        the images from.
-      - Page: number with autocomplete; used to specify the page if there's no image specified.
-      - Public bool; makes the response visible to everyone;
+    - Displays all images of a specified user in a carousel.
+    - Parameters:
+      - `Nickname`: REQUIRED string; specifies the user.
+      - `Page`: number; specifies the starting page.
+      - `Public`: bool (default: false); makes the response visible to everyone.
   - `sexy image`
-    - Will return the specified image.
-    - Parameters
-      - Nickname: REQUIRED string with autocomplete; used to specify from what user it should grep
-        the images from.
-      - Image: REQUIRED string with autocomplete; overwrites carousel mode to display one image.
-      - Public bool default false; makes the response visible to everyone;
+    - Returns a specified image.
+    - Parameters:
+      - `Nickname`: REQUIRED string; specifies the user.
+      - `Image`: REQUIRED string; specifies the image.
+      - `Public`: bool (default: false); makes the response visible to everyone.
   - `sexy-upload`
-    - Allows users to upload sexy images to server.
-    - Parameters
-      - Nickname: REQUIRED string with autocomplete; used to specify under what directory it
-        should upload the image.
-      - Filename: REQUIRED string; it should be set to a short description of
-        the image.
-      - Image: REQUIRED attachment: the image you want to upload.
+    - Allows users to upload images.
+    - Parameters:
+      - `Nickname`: REQUIRED string; specifies the directory for the image.
+      - `Filename`: REQUIRED string; a short description of the image.
+      - `Image`: REQUIRED attachment; the image to upload.
 
 ## Installation
-
 ### Prerequisites
-
 - Deno
 - Git
 - Port forwarding / a different solution to get the web server online.
 
 ### Installation
-
 - `git clone https://github.com/jsw08/dcbot`
 - `cd dcbot`
 - `deno i`
@@ -113,6 +104,8 @@ I haven't implemented many commands yet.
 ```
 
 ## Usage
+> [!WARNING]
+> The program *DOES NOT* support jsonc as config. This means that you'll have to remove the comments.
 
 - Create a config.json based on the `config.template.json`, see
   <a href="#configuration">configuration</a>.
@@ -120,7 +113,5 @@ I haven't implemented many commands yet.
 - Run `deno run -A ./src/main.ts`
 
 ## Screenshots and recordings
-
 ### Sexy mfs
-
 https://github.com/user-attachments/assets/5ade453d-41c9-430f-893f-04c1c20819b8
