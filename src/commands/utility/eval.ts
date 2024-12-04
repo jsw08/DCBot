@@ -121,14 +121,14 @@ const command: SlashCommand = {
     .addSubcommand((subc) =>
       commonCommands(subc, (subc) =>
         subc
-          .setName("inline")
-          .setDescription("For your beautiful ts-oneliners.")
           .addStringOption((opts) =>
             opts
               .setName("code")
               .setDescription("Write your javascript code here.")
               .setRequired(true)
           ))
+        .setName("inline")
+        .setDescription("For your beautiful ts-oneliners.")
     )
     .addSubcommand((subc) =>
       commonCommands(subc)
@@ -151,7 +151,7 @@ const command: SlashCommand = {
   modal: async (interaction) => {
     await interaction.deferReply();
 
-    const output = interaction.customId === `${command.command.name}_true`
+    const output = interaction.customId === `${command.command.name}_true`;
     const code = interaction.fields.getField("code");
     await codeHandler(code.value, interaction, output);
   },
