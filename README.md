@@ -115,3 +115,8 @@ These commands allows me and my friends to save and share unappealing images of 
 ## Screenshots and recordings
 ### Sexy mfs
 https://github.com/user-attachments/assets/5ade453d-41c9-430f-893f-04c1c20819b8
+
+### Utilities
+https://github.com/user-attachments/assets/1413376d-a00a-4909-a01e-5e86f9cbe201
+
+
