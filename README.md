@@ -17,24 +17,62 @@ I haven't implemented many commands yet.
 
 - Utility
   - Ping
+    - `ping`
+    - Accessible to everyone
     - Will respond pong lol.
+  - Timestamp
+    - `time`
+    - Accessible to everyone
+    - Will generate and preview a discord timestamp
+    - Parameters
+      - time: REQUIRED: string; A js datestring. 
+      - type: REQUIRED: string with autocomplete; The kind of discord timestamp you'd like to generate. Just a list you can pick from.
+  - Typst: Typst is a language to write scientific papers.
+    - Accessible to everyone.
+    - Will compile your typst code into an png.
+    - `typst inline`
+        - Allows you to enter your typst code into the command parameter.
+        - Parameters
+            - Code: REQUIRED: string; your typst code.
+            - file: bool default false; will attach your typst code as file
+            - transparant: bool default true; will set the background color to transparant and text to white. Not compatible with discords light mode.
+    - `typst multiline`
+        - Same as typst inline but it'll open a modal with a 'textarea'.
+        - Parameters
+            - file: bool default false; will attach your typst code as file
+            - transparant: bool default true; will set the background color to transparant and text to white. Not compatible with discords light mode.
+  - Typescript interpreter
+    - Only accessible to configured userids.
+    - `ts inline`
+      - Runs your typescript oneliners.
+      - Parameters
+        - code: REQUIRED: string; ts code.
+        - output: bool default true; replies an public message with the input and (if there are) outputs (console.logs etc). It will delete the command is loading message if you don't interact with the discordjs api.
+    - `ts multiline`
+      - Opens up a modal to write multiple lines of typescript code (max 4000 chars).
+      - Parameters
+        - output: bool default true; replies an public message with the input and (if there are) outputs (console.logs etc). It will delete the command is loading message if you don't interact with the discordjs api.
 - Sexy commands: this group of commands allows me and my friends to save
   (unappealing) images of eachother in a central place and send them as memes.
-  - `sexy-get`
-    - Will display images of a person.
-    - It has two modes; carousel and image. When there's no image specified, it
-      will display every image found in a carousel. You are allowed to use the
-      page parameter to specify the starting page when it's in carousel mode.
+  - Only accessible to users in a configured guild or userid
+  - `sexy carousel`
+    - It will display every image found of a person in a carousel. You can use the page parameter to specify the starting page. Everyone with access (either at server or user level) is able to scroll through the carousel.
     - Parameters
-      - Nickname: REQUIRED string; used to specify from what user it should grep
+      - Nickname: REQUIRED string with autocomplete; used to specify from what user it should grep
         the images from.
-      - Page: number; used to specify the page if there's no image specified.
-      - Image: string; overwrites carousel mode to display one image.
+      - Page: number with autocomplete; used to specify the page if there's no image specified.
       - Public bool; makes the response visible to everyone;
-  - `sexy-up`
+  - `sexy image`
+    - Will return the specified image.
+    - Parameters
+      - Nickname: REQUIRED string with autocomplete; used to specify from what user it should grep
+        the images from.
+      - Image: REQUIRED string with autocomplete; overwrites carousel mode to display one image.
+      - Public bool default false; makes the response visible to everyone;
+  - `sexy-upload`
     - Allows users to upload sexy images to server.
     - Parameters
-      - Nickname: REQUIRED string; used to specify under what directory it
+      - Nickname: REQUIRED string with autocomplete; used to specify under what directory it
         should upload the image.
       - Filename: REQUIRED string; it should be set to a short description of
         the image.

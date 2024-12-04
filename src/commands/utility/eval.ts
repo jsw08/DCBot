@@ -63,8 +63,12 @@ const codeHandler = async (
       results.push(await eval(code.replace(/console\.\w+/g, "results.push")));
     }
 
-    if (showOutput === undefined || showOutput === null || showOutput) {
+    if (showOutput !== undefined && showOutput !== null && showOutput) {
       await interaction.followUp(codeReplyOptions(code, results));
+    } else {
+      await interaction.followUp({content: "Self destructing..."})
+      await interaction.deleteReply();
+      console.info("deleted")
     }
   } catch (e) {
     const err = e as Error;
