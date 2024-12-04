@@ -111,7 +111,7 @@ const typstMessage = async (
 };
 
 // Interaction handler
-const typstHandler = async (interaction: ChatInputCommandInteraction | ModalSubmitInteraction, input: string, attachFile: boolean, transparantBackground: boolean): Promise<void> => {
+const typstHandler = async (interaction: ChatInputCommandInteraction | ModalSubmitInteraction, input: string, transparantBackground: boolean, attachFile: boolean): Promise<void> => {
     if (!input) {
       await interaction.followUp({
         embeds: [embed({
@@ -246,13 +246,27 @@ const command: SlashCommand = {
     }
 
     await interaction.deferReply();
-    await typstHandler(interaction, code, false, transparantBackground)
+    await typstHandler(interaction, code, transparantBackground, false)
   },
   modal: async (interaction) => {
-    const file = interaction.customId.split("_")[2] 
-    const transparant = interaction.customId.split("_")[1] 
+    const file = interaction.customId.split("_")[2] === "1" 
+    const transparant = interaction.customId.split("_")[1] === "1" 
+    const code = interaction.fields.getField("code")
 
+    if (!code.value) {
+      await interaction.reply({
+        embeds: [embed({
+          title: "Typst",
+          message: "Please provide valid typst code.",
+          kindOfEmbed: "error",
+        })],
+        ephemeral: true,
+      });
+      return;
+    }
 
+    await interaction.deferReply();
+    await typstHandler(interaction, code.value, transparant, file)
   },
 };
 
