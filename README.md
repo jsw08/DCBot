@@ -57,7 +57,7 @@ These commands allows me and my friends to save and share unappealing images of 
     - Displays all images of a specified user in a carousel.
     - Parameters:
       - `Nickname`: REQUIRED string; specifies the user.
-      - `Page`: number; specifies the starting page.
+      - `Page`: number (default: 0); specifies the starting page.
       - `Public`: bool (default: false); makes the response visible to everyone.
   - `sexy image`
     - Returns a specified image.
