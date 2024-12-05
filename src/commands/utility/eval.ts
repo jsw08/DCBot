@@ -26,7 +26,8 @@ const codeReplyOptions = (
     embeds: [embed({
       title: "Typescript interpreter.",
       kindOfEmbed: "success",
-      message: `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
+      message:
+        `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
     })],
   };
 };
@@ -38,23 +39,23 @@ const codeHandler = async (
   const results: string[] = [];
   const evalCode = async (code: string): Promise<string[]> => {
     const updatedCode = code.replace(/console\.\w+/g, "results.push");
-    const output: string[] = []; 
+    const output: string[] = [];
 
     if (code.includes("await")) {
-      await eval(`(async () => { ${updatedCode} })()`)
+      await eval(`(async () => { ${updatedCode} })()`);
     } else {
-      await eval(updatedCode)
+      await eval(updatedCode);
     }
 
-    return output
-  }
+    return output;
+  };
 
   try {
-    if (showOutput !== null && showOutput === false)  {
-      await interaction.deleteReply()
-      results.push(...await evalCode(code))
+    if (showOutput !== null && showOutput === false) {
+      await interaction.deleteReply();
+      results.push(...await evalCode(code));
     } else {
-      results.push(...await evalCode(code))
+      results.push(...await evalCode(code));
       await interaction.followUp(codeReplyOptions(code, results));
     }
   } catch (e) {
@@ -136,14 +137,14 @@ const command: SlashCommand = {
       return;
     }
 
-    interaction.deferReply()
+    interaction.deferReply();
     codeHandler(code, interaction, output);
   },
   modal: (interaction) => {
     const output = interaction.customId === `${command.command.name}_true`;
     const code = interaction.fields.getField("code");
 
-    interaction.deferReply()
+    interaction.deferReply();
     codeHandler(code.value, interaction, output);
   },
 };

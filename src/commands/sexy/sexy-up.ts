@@ -8,7 +8,7 @@ import config from "config" with { type: "json" };
 
 const checkFilename = (str: string): boolean => {
   const invalidCharsPattern = /[<>:"/\\|?*]/;
-  return !invalidCharsPattern.test(str)
+  return !invalidCharsPattern.test(str);
 };
 
 const contentTypes: string[] = imageFileTypes.map((v) =>
@@ -48,13 +48,12 @@ const command: SlashCommand = {
     ),
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname", true);
-    const filename = interaction.options.getString("filename", true); 
+    const filename = interaction.options.getString("filename", true);
     const image = interaction.options.getAttachment("image", true);
-
 
     if (
       checkFilename(filename) &&
-      !contentTypes.includes(image.contentType ?? "") 
+      !contentTypes.includes(image.contentType ?? "")
     ) {
       await interaction.reply({
         embeds: [embed({

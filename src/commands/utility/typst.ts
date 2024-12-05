@@ -6,9 +6,9 @@ import {
   ModalBuilder,
   ModalSubmitInteraction,
   SlashCommandBuilder,
-  SlashCommandSubcommandBuilder, 
+  SlashCommandSubcommandBuilder,
   TextInputBuilder,
-  TextInputStyle, 
+  TextInputStyle,
 } from "discord.js";
 import { Buffer } from "node:buffer";
 import { SlashCommand } from "$/commandLoader.ts";
@@ -32,7 +32,6 @@ try {
   );
   typstInstalled = false;
 }
-
 
 // Typst running and checking errors
 type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
@@ -72,7 +71,9 @@ const typstRender = async (
   try {
     await typstWriter.write(new TextEncoder()
       .encode(`
-	#set page(height: auto, width: auto, margin: 1em${transparant ? ", fill: none" : ""})
+	#set page(height: auto, width: auto, margin: 1em${
+        transparant ? ", fill: none" : ""
+      })
 	${transparant ? "#set text(fill: white)" : ""}
 	${input}
       `));
@@ -93,7 +94,7 @@ const typstRender = async (
 };
 const typstMessage = async (
   input: string,
-  transparant: boolean
+  transparant: boolean,
 ): Promise<TypstSuccess | TypstError> => {
   const tempImageFile = await Deno.makeTempFile({
     prefix: "typst_",
@@ -111,45 +112,50 @@ const typstMessage = async (
 };
 
 // Interaction handler
-const typstHandler = async (interaction: ChatInputCommandInteraction | ModalSubmitInteraction, input: string, transparantBackground: boolean, attachFile: boolean): Promise<void> => {
-    if (!input) {
-      await interaction.followUp({
-        embeds: [embed({
-          title: "Typst",
-          kindOfEmbed: "error",
-          message: "Please provide a valid input.",
-        })],
-      });
-      return;
-    }
+const typstHandler = async (
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  input: string,
+  transparantBackground: boolean,
+  attachFile: boolean,
+): Promise<void> => {
+  if (!input) {
+    await interaction.followUp({
+      embeds: [embed({
+        title: "Typst",
+        kindOfEmbed: "error",
+        message: "Please provide a valid input.",
+      })],
+    });
+    return;
+  }
 
-    const typst = await typstMessage(input, transparantBackground);
-    if (isTypstError(typst)) {
-      interaction.followUp({
-        embeds: [embed({
-          title: "Typst",
-          message:
-            `Error while using running typst (${typst.error}).` + typst.errorMsg
-              ? `\`\`\`${typst.errorMsg}\`\`\``
-              : "",
-          kindOfEmbed: "error",
-        })],
-      });
-      return;
-    }
+  const typst = await typstMessage(input, transparantBackground);
+  if (isTypstError(typst)) {
+    interaction.followUp({
+      embeds: [embed({
+        title: "Typst",
+        message:
+          `Error while using running typst (${typst.error}).` + typst.errorMsg
+            ? `\`\`\`${typst.errorMsg}\`\`\``
+            : "",
+        kindOfEmbed: "error",
+      })],
+    });
+    return;
+  }
 
-    const files: AttachmentBuilder[] = [typst.asset];
-    if (attachFile) {
-      const typstFile = new AttachmentBuilder(
-        Buffer.from(new TextEncoder().encode(input)),
-      );
-      typstFile.setName("main.typ");
-      files.push(typstFile);
-    }
-    
-    await interaction.followUp({files});
-    typst.deleteFile();
-}
+  const files: AttachmentBuilder[] = [typst.asset];
+  if (attachFile) {
+    const typstFile = new AttachmentBuilder(
+      Buffer.from(new TextEncoder().encode(input)),
+    );
+    typstFile.setName("main.typ");
+    files.push(typstFile);
+  }
+
+  await interaction.followUp({ files });
+  typst.deleteFile();
+};
 
 // Typst editor modal
 const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
@@ -163,10 +169,13 @@ const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
 
   return new ModalBuilder()
     .setTitle("Typst editor.")
-    .setCustomId(`${command.command.name}_${Number(transparantBackground)}_${Number(attachFile)}`)
+    .setCustomId(
+      `${command.command.name}_${Number(transparantBackground)}_${
+        Number(attachFile)
+      }`,
+    )
     .addComponents(inputRow);
 };
-
 
 const commonCommands = (
   subc: SlashCommandSubcommandBuilder,
@@ -224,11 +233,12 @@ const command: SlashCommand = {
       return;
     }
 
-    const transparantBackground = interaction.options.getBoolean("transparant") ?? true
+    const transparantBackground =
+      interaction.options.getBoolean("transparant") ?? true;
     const includeFile = interaction.options.getBoolean("file") ?? false;
     if (interaction.options.getSubcommand(true) === "multiline") {
       await interaction.showModal(
-        codeModal(transparantBackground, includeFile)
+        codeModal(transparantBackground, includeFile),
       );
       return;
     }
@@ -236,12 +246,12 @@ const command: SlashCommand = {
     const code = interaction.options.getString("code", true);
 
     await interaction.deferReply();
-    await typstHandler(interaction, code, transparantBackground, includeFile)
+    await typstHandler(interaction, code, transparantBackground, includeFile);
   },
   modal: async (interaction) => {
-    const file = interaction.customId.split("_")[2] === "1" 
-    const transparant = interaction.customId.split("_")[1] === "1" 
-    const code = interaction.fields.getField("code")
+    const file = interaction.customId.split("_")[2] === "1";
+    const transparant = interaction.customId.split("_")[1] === "1";
+    const code = interaction.fields.getField("code");
 
     if (!code.value) {
       await interaction.reply({
@@ -256,9 +266,8 @@ const command: SlashCommand = {
     }
 
     await interaction.deferReply();
-    await typstHandler(interaction, code.value, transparant, file)
+    await typstHandler(interaction, code.value, transparant, file);
   },
 };
-
 
 export default command;

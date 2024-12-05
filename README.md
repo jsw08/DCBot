@@ -12,7 +12,9 @@
 > however licensed under the unlicense so you may use the code however you like.
 
 ## Commands
+
 ### Utility Commands
+
 - **Ping**
   - Command: `ping`
   - Accessibility: Everyone
@@ -24,7 +26,8 @@
   - Description: Generates and previews a Discord timestamp.
   - Parameters:
     - `time`: REQUIRED string; a JavaScript date string.
-    - `type`: REQUIRED string; the type of Discord timestamp to generate (with autocomplete).
+    - `type`: REQUIRED string; the type of Discord timestamp to generate (with
+      autocomplete).
 
 - **Typst**
   - Description: Compiles Typst code into a PNG image.
@@ -34,10 +37,12 @@
       - Parameters:
         - `Code`: REQUIRED string; your Typst code.
         - `file`: bool (default: false); attaches your Typst code as a file.
-        - `transparent`: bool (default: true); sets the background to transparent and text to white (not compatible with Discord's light mode).
+        - `transparent`: bool (default: true); sets the background to
+          transparent and text to white (not compatible with Discord's light
+          mode).
     - `typst multiline`
-      - Same as `typst inline`, but opens a modal with a textarea for multi-line input.
-
+      - Same as `typst inline`, but opens a modal with a textarea for multi-line
+        input.
 
 - **TypeScript Interpreter**
   - Accessibility: Configured user IDs only.
@@ -45,12 +50,16 @@
     - `ts inline`
       - Parameters:
         - `code`: REQUIRED string; TypeScript code.
-        - `output`: bool (default: true); replies with the input and outputs (e.g., console logs).
+        - `output`: bool (default: true); replies with the input and outputs
+          (e.g., console logs).
     - `ts multiline`
       - Opens a modal for multi-line TypeScript code (max 4000 characters).
 
 ### Sexy Commands
-These commands allows me and my friends to save and share unappealing images of each other as memes.
+
+These commands allows me and my friends to save and share unappealing images of
+each other as memes.
+
 - Accessibility: Users in a configured guild or user ID only.
 - Commands:
   - `sexy carousel`
@@ -73,12 +82,15 @@ These commands allows me and my friends to save and share unappealing images of 
       - `Image`: REQUIRED attachment; the image to upload.
 
 ## Installation
+
 ### Prerequisites
+
 - Deno
 - Git
 - Port forwarding / a different solution to get the web server online.
 
 ### Installation
+
 - `git clone https://github.com/jsw08/dcbot`
 - `cd dcbot`
 - `deno i`
@@ -104,8 +116,10 @@ These commands allows me and my friends to save and share unappealing images of 
 ```
 
 ## Usage
+
 > [!WARNING]
-> The program *DOES NOT* support jsonc as config. This means that you'll have to remove the comments.
+> The program _DOES NOT_ support jsonc as config. This means that you'll have to
+> remove the comments.
 
 - Create a config.json based on the `config.template.json`, see
   <a href="#configuration">configuration</a>.
@@ -113,10 +127,11 @@ These commands allows me and my friends to save and share unappealing images of 
 - Run `deno run -A ./src/main.ts`
 
 ## Screenshots and recordings
+
 ### Sexy mfs
+
 https://github.com/user-attachments/assets/5ade453d-41c9-430f-893f-04c1c20819b8
 
 ### Utilities
+
 https://github.com/user-attachments/assets/1413376d-a00a-4909-a01e-5e86f9cbe201
-
-
