@@ -6,9 +6,9 @@ import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 import config from "config" with { type: "json" };
 
-const sanitizeString = (str: string): string => {
-  str = str.replace(/[^a-z0-9áéíóúñü \.,_-]/gim, "");
-  return str.trim();
+const checkFilename = (str: string): boolean => {
+  const invalidCharsPattern = /[<>:"/\\|?*]/;
+  return !invalidCharsPattern.test(str)
 };
 
 const contentTypes: string[] = imageFileTypes.map((v) =>
@@ -36,6 +36,8 @@ const command: SlashCommand = {
         .setDescription(
           "Pick a descriptive filename (no ext like .png).",
         )
+        .setMinLength(4)
+        .setMaxLength(20)
         .setRequired(true)
     )
     .addAttachmentOption((opt) =>
@@ -45,47 +47,19 @@ const command: SlashCommand = {
         .setRequired(true)
     ),
   execute: async (interaction) => {
-    const nickname = interaction.options.getString("nickname");
-    const filename = sanitizeString(
-      `${interaction.options.getString("filename")}`,
-    ); // make sure it's safe and stuff
-    const image = interaction.options.getAttachment("image");
+    const nickname = interaction.options.getString("nickname", true);
+    const filename = interaction.options.getString("filename", true); 
+    const image = interaction.options.getAttachment("image", true);
 
-    if (!nickname) {
-      await interaction.reply({
-        embeds: [embed({
-          title: "Error!",
-          message: `Please provide a valid nickname.`,
-          kindOfEmbed: "error",
-        })],
-        ephemeral: true,
-      });
-      return;
-    }
 
     if (
-      !filename || filename.length <= 2 || filename.includes("/") ||
-      filename.includes("\\")
+      checkFilename(filename) &&
+      !contentTypes.includes(image.contentType ?? "") 
     ) {
       await interaction.reply({
         embeds: [embed({
           title: "Error!",
-          message: `Please provide a valid filename.`,
-          kindOfEmbed: "error",
-        })],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    if (
-      image === null || image.contentType === null || image.url === null ||
-      !contentTypes.includes(image.contentType)
-    ) {
-      await interaction.reply({
-        embeds: [embed({
-          title: "Error!",
-          message: "Please provide a valid image.",
+          message: "Please provide valid parameters.",
           kindOfEmbed: "error",
         })],
         ephemeral: true,

@@ -184,17 +184,12 @@ const command: SlashCommand = {
     .addSubcommand(subCommandCarousel),
 
   execute: async (interaction) => {
-    const nickname = interaction.options.getString("nickname");
+    const nickname = interaction.options.getString("nickname", true);
     const page = interaction.options.getInteger("page");
     const image = interaction.options.getString("image");
     const pub = interaction.options.getBoolean("public");
 
     const subc = interaction.options.getSubcommand(true);
-
-    if (!nickname || nickname === "" || subc === "image" && image === "") {
-      sexyMfWasntFoundEmbed(interaction);
-      return;
-    }
 
     let images: string[][] = [];
     if (subc === "image" && image) {

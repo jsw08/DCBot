@@ -26,50 +26,36 @@ const codeReplyOptions = (
     embeds: [embed({
       title: "Typescript interpreter.",
       kindOfEmbed: "success",
-      message: `## Input \n${bt}ts\n${input}\n${bt}\n${
-        output.some((v) => v !== undefined)
-          ? `## Output\n${bt}ts\n${out}${bt}`
-          : ""
-      }`,
+      message: `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
     })],
   };
 };
 const codeHandler = async (
-  code: string | null,
+  code: string,
   interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
   showOutput?: boolean | null,
 ): Promise<void> => {
   const results: string[] = [];
+  const evalCode = async (code: string): Promise<string[]> => {
+    const updatedCode = code.replace(/console\.\w+/g, "results.push");
+    const output: string[] = []; 
 
-  if (!code) {
-    await interaction.followUp({
-      embeds: [embed({
-        kindOfEmbed: "error",
-        title: "Error!",
-        message: "Please provide a code string.",
-      })],
-    });
-    return;
-  }
-
-  console.log(code)
-
-  try {
     if (code.includes("await")) {
-      results.push(
-        await eval(`(async () => {
-	      ${code.replace(/console\.\w+/g, "results.push")}
-	  })()`),
-      );
+      await eval(`(async () => { ${updatedCode} })()`)
     } else {
-      results.push(await eval(code.replace(/console\.\w+/g, "results.push")));
+      await eval(updatedCode)
     }
 
-    if (showOutput === undefined || showOutput === null || showOutput) {
-      await interaction.followUp(codeReplyOptions(code, results));
+    return output
+  }
+
+  try {
+    if (showOutput !== null && showOutput === false)  {
+      await interaction.deleteReply()
+      results.push(...await evalCode(code))
     } else {
-      await interaction.followUp({content: "Self destructing..."})
-      await interaction.deleteReply();
+      results.push(...await evalCode(code))
+      await interaction.followUp(codeReplyOptions(code, results));
     }
   } catch (e) {
     const err = e as Error;
@@ -140,8 +126,8 @@ const command: SlashCommand = {
         .setName("multiline")
         .setDescription("For your longer codepieces.")
     ),
-  execute: async (interaction) => {
-    const code = interaction.options.getString("code");
+  execute: (interaction) => {
+    const code = interaction.options.getString("code", true);
     const subc = interaction.options.getSubcommand(true);
     const output = interaction.options.getBoolean("output");
 
@@ -150,15 +136,15 @@ const command: SlashCommand = {
       return;
     }
 
-    await interaction.deferReply();
-    await codeHandler(code, interaction, output);
+    interaction.deferReply()
+    codeHandler(code, interaction, output);
   },
-  modal: async (interaction) => {
-    await interaction.deferReply();
-
+  modal: (interaction) => {
     const output = interaction.customId === `${command.command.name}_true`;
     const code = interaction.fields.getField("code");
-    await codeHandler(code.value, interaction, output);
+
+    interaction.deferReply()
+    codeHandler(code.value, interaction, output);
   },
 };
 

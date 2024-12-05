@@ -47,15 +47,8 @@ const command: SlashCommand = {
         ])
     ),
   execute: (interaction) => {
-    const timestamp = interaction.options.getString("time");
-    const type = interaction.options.getString("type");
-
-    if (!timestamp || !type) {
-      return errorMessage(
-        interaction,
-        "Something's wrong with your parameters.",
-      );
-    }
+    const timestamp = interaction.options.getString("time", true);
+    const type = interaction.options.getString("type", true);
     const date = Date.parse(timestamp);
 
     if (isNaN(date)) {

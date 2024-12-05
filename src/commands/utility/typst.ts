@@ -233,18 +233,7 @@ const command: SlashCommand = {
       return;
     }
 
-    const code = interaction.options.getString("code");
-    if (!code) {
-      await interaction.reply({
-        embeds: [embed({
-          title: "Typst",
-          message: "Please provide valid typst code.",
-          kindOfEmbed: "error",
-        })],
-        ephemeral: true,
-      });
-      return;
-    }
+    const code = interaction.options.getString("code", true);
 
     await interaction.deferReply();
     await typstHandler(interaction, code, transparantBackground, includeFile)
