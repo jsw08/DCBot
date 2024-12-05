@@ -18,10 +18,10 @@ export function checkAccess(
   }
   if (guildId && commandScope === "nowhere") return false;
 
-  return guildId && commandScope
+  return commandScope
     ? commandScope === "everywhere" ||
       (commandScope === "select_few" &&
-        config.private.guild_ids.includes(guildId))
+        config.private.guild_ids.includes(guildId ?? ""))
     : false;
 }
 
