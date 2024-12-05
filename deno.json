@@ -3,6 +3,7 @@
     "dev": "deno run -A --watch ./src/main.ts"
   },
   "imports": {
+    "@solely/simple-fm": "npm:@solely/simple-fm@^1.7.2",
     "@std/io": "jsr:@std/io@^0.225.0",
     "config": "./config.json",
     "$/": "./src/",

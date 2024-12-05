@@ -11,5 +11,6 @@
     "port": 8000,
     "image_url": "",
     "title_url": ""
-  }
+  },
+  "lastfm-key": ""
 }

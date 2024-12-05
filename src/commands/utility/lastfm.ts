@@ -1,6 +1,10 @@
 import { SlashCommandBuilder } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
+import SimpleFM from "@solely/simple-fm"
+import config from "config" with {type: "json"}
+
+const lastClient = new SimpleFM(config["lastfm-key"])
 
 const command: SlashCommand = {
   inDm: true,
@@ -15,12 +19,20 @@ const command: SlashCommand = {
         .setDescription("LastFM Username")
         .setRequired(true)
     ),
-  execute: (interaction) => {
+  execute: async (interaction) => {
     const user = interaction.options.getString("user", true);
+    
+    const tracks = await lastClient.user.getRecentTracks({username: user})
+    const track = tracks.tracks[0]
 
-    interaction.reply({
-      embeds: [embed({ message: "Pong!" })],
-    });
+    if (tracks.search.nowPlaying && track)
+      interaction.reply({
+	embeds: [embed({ message: "Pong!" })],
+      });
+    else
+      interaction.reply({
+	embeds: [embed({  })],
+      });
   },
 };
 
