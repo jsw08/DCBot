@@ -14,9 +14,11 @@ import {
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
-import config from "config" with { type: "json" };
 import { join } from "@std/path";
 import { walk } from "@std/fs/walk";
+
+const token = Deno.env.get("DC_TOKEN");
+if (!token) throw Error("PLease provide a DC_TOKEN")
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
@@ -53,12 +55,12 @@ const main = async (client: Client) => {
     client.slashCommands.set(command.command.name, command);
   }
 
-  const rest = new REST({ version: "10" }).setToken(config.token);
+  const rest = new REST({ version: "10" }).setToken(token);
 
   console.log("Loading slash commands...");
   try {
     const data = await rest.put(
-      Routes.applicationCommands(config.client_id),
+      Routes.applicationCommands(token),
       {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();

@@ -17,6 +17,8 @@ import { serveDir } from "@std/http/file-server";
 import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { SlashCommandSubcommandBuilder } from "discord.js";
 
+const hasEnvs
+
 const getSexyImages = async (
   nickname: string,
 ): Promise<string[][] | undefined> => {
