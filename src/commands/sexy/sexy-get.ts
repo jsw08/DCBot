@@ -5,7 +5,6 @@ import {
   InteractionResponse,
   SlashCommandBuilder,
 } from "discord.js";
-import config from "config" with { type: "json" };
 import { AutocompleteInteraction } from "discord.js";
 import { BaseMessageOptions } from "discord.js";
 import { ButtonStyle } from "discord.js";
@@ -17,7 +16,13 @@ import { serveDir } from "@std/http/file-server";
 import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { SlashCommandSubcommandBuilder } from "discord.js";
 
-const hasEnvs
+const envVars = ["DATA_DIR", "SEXY_PORT", "SEXY_URL", "SEXY_TITLE_URL"].map(
+  (v) => Deno.env.get(v),
+);
+const configured = envVars.some((v) => !v);
+if (!configured) {
+  console.error("Sexy-get requires the env vars to be properly configured.");
+}
 
 const getSexyImages = async (
   nickname: string,
@@ -26,7 +31,7 @@ const getSexyImages = async (
 
   try {
     const sexyImageFiles = Deno.readDir(
-      join(import.meta.dirname!, "../../../", config["sexy-mfs"].dir, nickname),
+      join(envVars[0], nickname),
     );
     for await (const image of sexyImageFiles) {
       if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
