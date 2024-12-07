@@ -127,7 +127,7 @@ const command: SlashCommand = {
         .setName("multiline")
         .setDescription("For your longer codepieces.")
     ),
-  execute: (interaction) => {
+  execute: async (interaction) => {
     const code = interaction.options.getString("code", true);
     const subc = interaction.options.getSubcommand(true);
     const output = interaction.options.getBoolean("output");
@@ -137,15 +137,15 @@ const command: SlashCommand = {
       return;
     }
 
-    interaction.deferReply();
-    codeHandler(code, interaction, output);
+    await interaction.deferReply();
+    await codeHandler(code, interaction, output);
   },
-  modal: (interaction) => {
+  modal: async (interaction) => {
     const output = interaction.customId === `${command.command.name}_true`;
     const code = interaction.fields.getField("code");
 
-    interaction.deferReply();
-    codeHandler(code.value, interaction, output);
+    await interaction.deferReply();
+    await codeHandler(code.value, interaction, output);
   },
 };
 
