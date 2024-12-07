@@ -14,7 +14,11 @@ import { Buffer } from "node:buffer";
 import { SlashCommand } from "$/commandLoader.ts";
 import { basename } from "@std/path/basename";
 import { embed } from "$utils/embed.ts";
+import { checkOrCreateDir } from "$utils/dir.ts";
+import { join } from "@std/path/join";
+import { config } from "$utils/config.ts";
 
+const TYPST_DIR = join(config.DATA_DIR, "typst")
 // Typst installed check
 let typstInstalled = true;
 try {
@@ -32,6 +36,9 @@ try {
   );
   typstInstalled = false;
 }
+
+// Create seperate typst directory.
+checkOrCreateDir(TYPST_DIR)
 
 // Typst running and checking errors
 type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
@@ -55,7 +62,7 @@ const typstRender = async (
     args: [
       "compile",
       "--root",
-      import.meta.dirname!,
+      TYPST_DIR,
       "-f",
       "png",
       "-",
@@ -99,6 +106,7 @@ const typstMessage = async (
   const tempImageFile = await Deno.makeTempFile({
     prefix: "typst_",
     suffix: ".png",
+    dir: TYPST_DIR
   });
 
   const typst = await typstRender(input, transparant, tempImageFile);
