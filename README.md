@@ -14,6 +14,7 @@
 
 ## Commands
 
+
 | **Command** | Description | Parameters | Availability | Preview |
 |---|---|---|---|---|
 | `/ping` | Responds with "pong" | None | Everywhere | ![{6004959A-4792-4FAB-B937-03490B4EF3C0}](https://github.com/user-attachments/assets/c4f5f11b-72dc-4e7f-a77c-9759a0d20ad4) |
@@ -58,6 +59,7 @@ project root, or set the environment variables. See the
 - Run `deno run -A ./src/main.ts`
 
 ## Screenshots and recordings
+![{35FE9E78-CABA-41B1-B861-940C94C80203}](https://github.com/user-attachments/assets/98174ebf-59e3-4f8b-8068-09b4d6c8c7e4)
 
 ### Sexy mfs
 
