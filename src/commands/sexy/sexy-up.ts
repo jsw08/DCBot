@@ -1,10 +1,8 @@
-import { SlashCommandBuilder } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
+import { SlashCommandBuilder, AutocompleteInteraction  } from "discord.js";
 import { embed } from "$utils/embed.ts";
-import { AutocompleteInteraction } from "discord.js";
-import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
+import { dir, imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
-import config from "config" with { type: "json" };
 
 const checkFilename = (str: string): boolean => {
   const invalidCharsPattern = /[<>:"/\\|?*]/;
@@ -66,15 +64,14 @@ const command: SlashCommand = {
       return;
     }
 
-    const dir = join(
-      import.meta.dirname!,
-      "../../../",
-      config["sexy-mfs"].dir,
-      nickname,
+    const nickDir = join(
+      dir,
+      nickname
     );
+
     let createDir = false;
     try {
-      await Deno.lstat(dir);
+      await Deno.lstat(nickDir);
     } catch (e) {
       if (!(e instanceof Deno.errors.NotFound)) throw e;
 
@@ -83,7 +80,7 @@ const command: SlashCommand = {
 
     if (!createDir) {
       try {
-        await Deno.lstat(join(dir, filename));
+        await Deno.lstat(join(nickDir, filename));
         await interaction.reply({
           embeds: [embed({
             title: "Error!",
@@ -98,7 +95,7 @@ const command: SlashCommand = {
         if (!(e instanceof Deno.errors.NotFound)) throw e;
       }
     } else {
-      await Deno.mkdir(dir);
+      await Deno.mkdir(nickDir);
     }
     const resp = await fetch(image.url);
     if (!resp.ok || !resp.body || resp.status === 404) {
@@ -116,7 +113,7 @@ const command: SlashCommand = {
 
     const filetype = image.name.split(".");
     const file = await Deno.create(
-      join(dir, `${filename}.${filetype[filetype.length - 1]}`),
+      join(nickDir, `${filename}.${filetype[filetype.length - 1]}`),
     );
     resp.body.pipeTo(file.writable);
 

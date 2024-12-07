@@ -4,25 +4,14 @@ import {
   ButtonInteraction,
   InteractionResponse,
   SlashCommandBuilder,
+  ButtonStyle, ChatInputCommandInteraction, BaseMessageOptions, AutocompleteInteraction, SlashCommandSubcommandBuilder 
 } from "discord.js";
-import { AutocompleteInteraction } from "discord.js";
-import { BaseMessageOptions } from "discord.js";
-import { ButtonStyle } from "discord.js";
-import { ChatInputCommandInteraction } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
+import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
+import { imageFileTypes, usernameAutocomplete, dir } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
-import { imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
-import { SlashCommandSubcommandBuilder } from "discord.js";
-
-const envVars = ["DATA_DIR", "SEXY_PORT", "SEXY_URL", "SEXY_TITLE_URL"].map(
-  (v) => Deno.env.get(v),
-);
-const configured = envVars.some((v) => !v);
-if (!configured) {
-  console.error("Sexy-get requires the env vars to be properly configured.");
-}
 
 const getSexyImages = async (
   nickname: string,
@@ -31,8 +20,9 @@ const getSexyImages = async (
 
   try {
     const sexyImageFiles = Deno.readDir(
-      join(envVars[0], nickname),
+      join(dir, nickname),
     );
+
     for await (const image of sexyImageFiles) {
       if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
       if (images[images.length - 1].length === 4) images.push([]);
@@ -95,12 +85,15 @@ const imagesPageProps = (
       kindOfEmbed: "success",
     })
       .setImage(
-        new URL(`/${nickname}/${v}`, config["sexy-mfs"].image_url)
+        new URL(`/${nickname}/${v}`, config.SEXY_URL)
           .toString(),
       )
-      .setURL(config["sexy-mfs"].title_url)
+      .setURL(config.SEXY_TITLE_URL)
       .setAuthor({ name: "Images may take a moment to load." })
   );
+    images[currentPage].map(v => console.log(
+        new URL(`/${nickname}/${v}`, config.SEXY_URL)
+          .toString()))
   return {
     embeds: embeds.length ? embeds : [
       embed({
@@ -114,7 +107,7 @@ const imagesPageProps = (
   };
 };
 
-const sexyMfWasntFoundEmbed = (
+const sendNotFoundEmbed = (
   interaction: ChatInputCommandInteraction | ButtonInteraction,
 ): Promise<InteractionResponse> =>
   interaction.reply({
@@ -124,7 +117,7 @@ const sexyMfWasntFoundEmbed = (
     ephemeral: true,
   });
 
-const subCommandCommon = (
+const addCommonSubCommandOptions = (
   subc: SlashCommandSubcommandBuilder,
   requiredCommands?: (
     arg0: SlashCommandSubcommandBuilder,
@@ -150,7 +143,7 @@ const subCommandCommon = (
 const subCommandImage = (
   subc: SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder =>
-  subCommandCommon(subc, (subc) =>
+  addCommonSubCommandOptions(subc, (subc) =>
     subc
       .addStringOption((opt) =>
         opt
@@ -166,7 +159,7 @@ const subCommandImage = (
 const subCommandCarousel = (
   subc: SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder =>
-  subCommandCommon(subc)
+  addCommonSubCommandOptions(subc)
     .setDescription("Display all sexy images in a carousel.")
     .addIntegerOption((opt) =>
       opt
@@ -203,16 +196,14 @@ const command: SlashCommand = {
       try {
         await Deno.lstat(
           join(
-            import.meta.dirname!,
-            "../../../",
-            config["sexy-mfs"].dir,
+            dir,
             nickname,
             image,
           ),
         );
       } catch (e) {
         if (!(e instanceof Deno.errors.NotFound)) throw e;
-        sexyMfWasntFoundEmbed(interaction);
+        sendNotFoundEmbed(interaction);
         return;
       }
 
@@ -220,7 +211,7 @@ const command: SlashCommand = {
     } else {
       const imgs = await getSexyImages(nickname);
       if (!imgs) {
-        sexyMfWasntFoundEmbed(interaction);
+        sendNotFoundEmbed(interaction);
         return;
       }
       images = imgs;
@@ -247,7 +238,7 @@ const command: SlashCommand = {
 
       const images: string[][] | undefined = await getSexyImages(nickname);
       if (!images) {
-        await sexyMfWasntFoundEmbed(interaction);
+        await sendNotFoundEmbed(interaction);
         return;
       }
 
@@ -267,17 +258,16 @@ const command: SlashCommand = {
 
   autocomplete: async (interaction: AutocompleteInteraction) => {
     const focusedOption = interaction.options.getFocused(true);
-    const nickname404 = async () =>
-      await interaction.respond([{
-        name: "That sexy mf wasn't found :/",
-        value: "",
-      }]);
+    const respondWithNotFound = async (msg: "nickname" | "image") => { 
+      const messages: Record<typeof msg, string> = {
+	"nickname": "That sexy mf wasn't found :/",
+	"image": "That sexy mf doesn't have any images."
+      }
 
-    const image404 = async () =>
       await interaction.respond([{
-        name: "That sexy mf doesn't have any images.",
+        name: messages[msg],
         value: "",
-      }]);
+      }]); }
 
     switch (focusedOption.name) {
       case "nickname": {
@@ -290,13 +280,13 @@ const command: SlashCommand = {
         const nickname = interaction.options.getString("nickname");
 
         if (!nickname) {
-          await nickname404();
+          await respondWithNotFound("nickname");
           break;
         }
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          await image404();
+          await respondWithNotFound("image");
           break;
         }
 
@@ -330,13 +320,13 @@ const command: SlashCommand = {
         const nickname = interaction.options.getString("nickname");
 
         if (!nickname) {
-          nickname404();
+          respondWithNotFound("nickname");
           break;
         }
 
         const images = await getSexyImages(nickname);
         if (!images) {
-          image404();
+          respondWithNotFound("image");
           break;
         }
 
@@ -361,9 +351,9 @@ const command: SlashCommand = {
   },
 };
 
-Deno.serve({ port: config["sexy-mfs"].port }, (req) => { // the 'cdn'
+Deno.serve({ port: parseInt(config.SEXY_PORT) }, (req) => { // the 'cdn'
   return serveDir(req, {
-    fsRoot: `${config["sexy-mfs"].dir}`,
+    fsRoot: `${dir}`,
   });
 });
 

@@ -32,10 +32,3 @@ export const embed = (parms: EmbedParams): EmbedBuilder => {
 
   return embed;
 };
-//   new EmbedBuilder()
-//.setAuthor()
-//.setColor()
-//.setDescription()
-//.setFooter()
-//.setImage()
-//.setTitle()

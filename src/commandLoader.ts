@@ -59,7 +59,7 @@ const main = async (client: Client) => {
   console.log("Loading slash commands...");
   try {
     const data = await rest.put(
-      Routes.applicationCommands(config.DC_TOKEN),
+      Routes.applicationCommands(config.DC_CLIENT_ID),
       {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();
