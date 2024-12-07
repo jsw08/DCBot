@@ -30,13 +30,13 @@ const command: SlashCommand = {
           message: "You must specify at least content or json.",
           kindOfEmbed: "error",
         })],
-        ephemeral: true
+        ephemeral: true,
       });
-      return
+      return;
     }
 
-    await interaction.deferReply()
-    await interaction.deleteReply()
+    await interaction.deferReply();
+    await interaction.deleteReply();
 
     try {
       interaction.followUp({

@@ -14,9 +14,9 @@ import {
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
-import config from "config" with { type: "json" };
 import { join } from "@std/path";
 import { walk } from "@std/fs/walk";
+import { config } from "$utils/config.ts";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
@@ -29,6 +29,7 @@ export interface SlashCommand {
   modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
   button?: (interaction: ButtonInteraction<CacheType>) => void;
   inDm?: boolean;
+  inGuild?: boolean;
   permissions?: Permissions;
 }
 declare module "discord.js" {
@@ -53,20 +54,17 @@ const main = async (client: Client) => {
     client.slashCommands.set(command.command.name, command);
   }
 
-  const rest = new REST({ version: "10" }).setToken(config.token);
+  const rest = new REST({ version: "10" }).setToken(config.DC_TOKEN);
 
   console.log("Loading slash commands...");
   try {
     const data = await rest.put(
-      Routes.applicationCommands(config.client_id),
+      Routes.applicationCommands(config.DC_CLIENT_ID),
       {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();
-          //const inGuild = v.permissions !== "nowhere";
-
           commandBuilder.contexts = [
-            //...(inGuild ? [0] : []),
-            0,
+            ...(v.inGuild ?? true ? [0] : []),
             ...(v.inDm ?? true ? [1, 2] : []),
           ];
 

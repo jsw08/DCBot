@@ -3,8 +3,8 @@
     "dev": "deno run -A --watch ./src/main.ts"
   },
   "imports": {
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
     "@std/io": "jsr:@std/io@^0.225.0",
-    "config": "./config.json",
     "$/": "./src/",
     "$utils/": "./src/utils/",
 

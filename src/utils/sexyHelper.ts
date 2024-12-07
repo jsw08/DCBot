@@ -1,16 +1,16 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
+import { config } from "$utils/config.ts";
 import { join } from "@std/path/join";
-import config from "config" with { type: "json" };
+import { checkOrCreateDir } from "$utils/dir.ts";
 
 export const usernameAutocomplete = async (
   amount: number,
   focusedValue: string,
 ): Promise<ApplicationCommandOptionChoiceData<string>[]> => {
-  const files = Deno.readDir(
-    join(import.meta.dirname!, "../../", config["sexy-mfs"].dir),
-  );
+  const files = Deno.readDir(join(config.DATA_DIR, "sexy"));
   const sexymfs: string[] = [];
   for await (const sexymf of files) {
+    if (!sexymf.isDirectory) continue;
     sexymfs.push(sexymf.name);
   }
 
@@ -37,3 +37,6 @@ export const imageFileTypes: string[] = [
   ".png",
   ".webp",
 ];
+
+export const dir = join(config.DATA_DIR, "sexy");
+checkOrCreateDir(dir);
