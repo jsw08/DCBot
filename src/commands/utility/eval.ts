@@ -39,19 +39,16 @@ const codeHandler = async (
   const results: string[] = [];
   const evalCode = async (code: string): Promise<string[]> => {
     const updatedCode = code.replace(/console\.\w+/g, "results.push");
-    const output: string[] = [];
 
     if (code.includes("await")) {
-      await eval(`(async () => { ${updatedCode} })()`);
+      return [await eval(`(async () => { ${updatedCode} })()`)];
     } else {
-      await eval(updatedCode);
+      return [await eval(updatedCode)];
     }
-
-    return output;
   };
 
   try {
-    if (showOutput !== null && showOutput === false) {
+    if (showOutput === false) {
       await interaction.deleteReply();
       results.push(...await evalCode(code));
     } else {
