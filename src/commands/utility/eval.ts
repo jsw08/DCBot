@@ -125,7 +125,6 @@ const command: SlashCommand = {
         .setDescription("For your longer codepieces.")
     ),
   execute: async (interaction) => {
-    const code = interaction.options.getString("code", true);
     const subc = interaction.options.getSubcommand(true);
     const output = interaction.options.getBoolean("output");
 
@@ -134,6 +133,7 @@ const command: SlashCommand = {
       return;
     }
 
+    const code = interaction.options.getString("code", true);
     await interaction.deferReply();
     await codeHandler(code, interaction, output);
   },
