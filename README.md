@@ -34,9 +34,12 @@
 
 ### Prerequisites
 
-- Deno
-- Git
-- Port forwarding / a different solution to get the web server online.
+- Required
+  - Deno
+  - Git
+  - Port forwarding / a different solution to get the web server online.
+- Optional
+  - Typst
 
 ### Installation
 
