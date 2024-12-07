@@ -54,14 +54,7 @@ project root, or set the environment variables. See the
 [template file](https://github.com/jsw08/DCBot/blob/master/template.env).
 
 ## Usage
-
-> [!WARNING]
-> The program _DOES NOT_ support jsonc as config. This means that you'll have to
-> remove the comments.
-
-- Create a config.json based on the `config.template.json`, see
-  <a href="#configuration">configuration</a>.
-- Create a sexy-mfs folder at the path you provided in the config.
+- Make sure you have your [environment variables](#configuration) set.
 - Run `deno run -A ./src/main.ts`
 
 ## Screenshots and recordings
