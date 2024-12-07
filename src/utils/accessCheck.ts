@@ -13,7 +13,9 @@ export function checkAccess(
   guildId?: string | null,
   commandScope?: Permissions | null,
 ): boolean {
-  if (config.PRIVATE !== "1" || config.PRIVATE_USERS.split(",").includes(userId)) {
+  if (
+    config.PRIVATE !== "1" || config.PRIVATE_USERS.split(",").includes(userId)
+  ) {
     return true;
   }
   if (commandScope === "nowhere") return false;

@@ -13,73 +13,21 @@
 
 ## Commands
 
-### Utility Commands
-
-- **Ping**
-  - Command: `ping`
-  - Accessibility: Everyone
-  - Response: "pong lol"
-
-- **Timestamp**
-  - Command: `time`
-  - Accessibility: Everyone
-  - Description: Generates and previews a Discord timestamp.
-  - Parameters:
-    - `time`: REQUIRED string; a JavaScript date string.
-    - `type`: REQUIRED string; the type of Discord timestamp to generate (with
-      autocomplete).
-
-- **Typst**
-  - Description: Compiles Typst code into a PNG image.
-  - Accessibility: Everyone
-  - Commands:
-    - `typst inline`
-      - Parameters:
-        - `Code`: REQUIRED string; your Typst code.
-        - `file`: bool (default: false); attaches your Typst code as a file.
-        - `transparent`: bool (default: true); sets the background to
-          transparent and text to white (not compatible with Discord's light
-          mode).
-    - `typst multiline`
-      - Same as `typst inline`, but opens a modal with a textarea for multi-line
-        input.
-
-- **TypeScript Interpreter**
-  - Accessibility: Configured user IDs only.
-  - Commands:
-    - `ts inline`
-      - Parameters:
-        - `code`: REQUIRED string; TypeScript code.
-        - `output`: bool (default: true); replies with the input and outputs
-          (e.g., console logs).
-    - `ts multiline`
-      - Opens a modal for multi-line TypeScript code (max 4000 characters).
-
-### Sexy Commands
-
-These commands allows me and my friends to save and share unappealing images of
-each other as memes.
-
-- Accessibility: Users in a configured guild or user ID only.
-- Commands:
-  - `sexy carousel`
-    - Displays all images of a specified user in a carousel.
-    - Parameters:
-      - `Nickname`: REQUIRED string; specifies the user.
-      - `Page`: number (default: 0); specifies the starting page.
-      - `Public`: bool (default: false); makes the response visible to everyone.
-  - `sexy image`
-    - Returns a specified image.
-    - Parameters:
-      - `Nickname`: REQUIRED string; specifies the user.
-      - `Image`: REQUIRED string; specifies the image.
-      - `Public`: bool (default: false); makes the response visible to everyone.
-  - `sexy-upload`
-    - Allows users to upload images.
-    - Parameters:
-      - `Nickname`: REQUIRED string; specifies the directory for the image.
-      - `Filename`: REQUIRED string; a short description of the image.
-      - `Image`: REQUIRED attachment; the image to upload.
+| **Command**          | Description                                                                                                                                                                                                                                        | Parameters                                                                                                                                                                                                                                | Availability                                  | Preview |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------- |
+| `/ping`              | Responds with "pong"                                                                                                                                                                                                                               | None                                                                                                                                                                                                                                      | Everywhere                                    |         |
+| `/time`              | Command to generate Discord Timestamps                                                                                                                                                                                                             | - time: REQUIRED string; must be a valid js-datestring. - type: REQUIRED autocompleted string; several options for the timestring, including relative, full date etc...                                                                   | Everywhere                                    |         |
+| `/say`               | Will say something as the bot.                                                                                                                                                                                                                     | You must specify one of these parameters. - content: string; the message. - json: string; parsed json, use this to add embeds.                                                                                                            | Everywhere                                    |         |
+| Typst                | This set of commands allow you to type and compile typst code in discord. Useful for those moments where you're explaining math to someone.                                                                                                        | Common parameters: - transparant: boolean; it'll set the background color of the png to transparant. Only compatible with discord dark mode as the text color will be set to white. - file: boolean; it'll attach the typst code as file. | Everywhere                                    |         |
+| - `/typst inline`    | You can type one line of typst code within the input itself and it'll generate a picture out of it.                                                                                                                                                | - code: REQUIRED string; the typst code. + common parameters                                                                                                                                                                              | Everywhere                                    |         |
+| - `/typst multiline` | A modal with a text input will be opened once you run this command so you can type multiple lines of typst code (up to 4000 chars)                                                                                                                 | + common parameters                                                                                                                                                                                                                       | Everywhere                                    |         |
+| Typescript Eval      | Runs the provided typescript code.                                                                                                                                                                                                                 | Common parameters: - output: boolean; if enabled the bot will respond with the input+output of your code in public chat (not ephemeral).                                                                                                  | Nowhere (only configured userids may use it.) |         |
+| - `/ts inline`       | Allow's for one line of typescript code. So you can either just run simple or minified code.                                                                                                                                                       | - code: REQUIRED string; ts code. + common parameters                                                                                                                                                                                     | Nowhere                                       |         |
+| - `/ts multiline`    | Opens a modal for longer codesnippets (again max length of 4000 characters).                                                                                                                                                                       | + common parameters                                                                                                                                                                                                                       | Nowhere                                       |         |
+| Sexy                 | This collection of commands allows me and my friends to - Upload unappealing pictures of eachother to my server. - Send them (within my discord server) using my bot. This allows us to have a central place to store funny pictures of eachother. | Common parameters: - nickname: REQUIRED autocompleted string; the nickname under which the photos are stored - public: bool; makes the message not ephemeral.                                                                             | At specified guilds                           |         |
+| - `/sexy carousel`   | Displays the pictures in a 4x4 grid with scrolling buttons on the bottom                                                                                                                                                                           | - page: autocompleted number; specifies the page the carousel should start at. + common parameters                                                                                                                                        | At specified guilds                           |         |
+| - `/sexy image`      | Allows you to pick one image to send.                                                                                                                                                                                                              | - image: REQUIRED autocompleted string; specifies the iamge that should be displayed. + common parameters                                                                                                                                 | At specified guilds                           |         |
+| - `/sexy-upload      | Uploads the specified image to the server's filesystem.                                                                                                                                                                                            | - nickname: REQUIRED autocompleted string; the nickname under which the photos are stored - filename: REQUIRED string; a name that should describe the image. - image: REQUIRED asset; the image file.                                    | At specified guilds                           |         |
 
 ## Installation
 
@@ -97,23 +45,9 @@ each other as memes.
 
 ## Configuration
 
-```jsonc
-{
-  "token": "", // Provide your discord token here. You can find it under the 'bot' tab in the discord dashboard.
-  "client_id": "", // Provide your discord bot's client_id. You can find it under the 'general' tab in the discord dashboard, it is named 'Application Id'.
-  "private": {
-    "enabled": true, // This allows you to disable some commands per server. As of now this is configured in the command files (./src/commands/*) themselves, because this is a personal project, not a template lol.
-    "user_ids": [""], // These users are allowed to use the commands everywhere.
-    "guild_ids": [""] // Some commands are allowed to be used in some guilds, but not everywhere. Enter those guild's ids here.
-  },
-  "sexy-mfs": {
-    "dir": "", // The path to the sexy-mfs folder. see #features for an explaination
-    "port": 8000, // The port at which the web server runs at.
-    "image_url": "", // External url to access the web server. Please include the port you set above as well (if you're not using a reverse-proxy.)
-    "title_url": "" // This is the url that will be set on the image embeds. The common url will make the images display in a 2x2 grid.
-  }
-}
-```
+This program works using dotenv. So you can either place a .env file in the
+project root, or set the environment variables. See the
+[template file](https://github.com/jsw08/DCBot/blob/master/template.env).
 
 ## Usage
 

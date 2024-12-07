@@ -10,7 +10,7 @@ export const usernameAutocomplete = async (
   const files = Deno.readDir(join(config.DATA_DIR, "sexy"));
   const sexymfs: string[] = [];
   for await (const sexymf of files) {
-    if (!sexymf.isDirectory) continue
+    if (!sexymf.isDirectory) continue;
     sexymfs.push(sexymf.name);
   }
 
@@ -38,5 +38,5 @@ export const imageFileTypes: string[] = [
   ".webp",
 ];
 
-export const dir = join(config.DATA_DIR, "sexy")
-checkOrCreateDir(dir)
+export const dir = join(config.DATA_DIR, "sexy");
+checkOrCreateDir(dir);

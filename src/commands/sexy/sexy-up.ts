@@ -1,7 +1,11 @@
 import { SlashCommand } from "$/commandLoader.ts";
-import { SlashCommandBuilder, AutocompleteInteraction  } from "discord.js";
+import { AutocompleteInteraction, SlashCommandBuilder } from "discord.js";
 import { embed } from "$utils/embed.ts";
-import { dir, imageFileTypes, usernameAutocomplete } from "$utils/sexyHelper.ts";
+import {
+  dir,
+  imageFileTypes,
+  usernameAutocomplete,
+} from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 
 const checkFilename = (str: string): boolean => {
@@ -66,7 +70,7 @@ const command: SlashCommand = {
 
     const nickDir = join(
       dir,
-      nickname
+      nickname,
     );
 
     let createDir = false;

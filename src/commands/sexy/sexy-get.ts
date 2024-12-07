@@ -1,15 +1,23 @@
 import {
   ActionRowBuilder,
+  AutocompleteInteraction,
+  BaseMessageOptions,
   ButtonBuilder,
   ButtonInteraction,
+  ButtonStyle,
+  ChatInputCommandInteraction,
   InteractionResponse,
   SlashCommandBuilder,
-  ButtonStyle, ChatInputCommandInteraction, BaseMessageOptions, AutocompleteInteraction, SlashCommandSubcommandBuilder 
+  SlashCommandSubcommandBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
-import { imageFileTypes, usernameAutocomplete, dir } from "$utils/sexyHelper.ts";
+import {
+  dir,
+  imageFileTypes,
+  usernameAutocomplete,
+} from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
 
@@ -91,9 +99,12 @@ const imagesPageProps = (
       .setURL(config.SEXY_TITLE_URL)
       .setAuthor({ name: "Images may take a moment to load." })
   );
-    images[currentPage].map(v => console.log(
-        new URL(`/${nickname}/${v}`, config.SEXY_URL)
-          .toString()))
+  images[currentPage].map((v) =>
+    console.log(
+      new URL(`/${nickname}/${v}`, config.SEXY_URL)
+        .toString(),
+    )
+  );
   return {
     embeds: embeds.length ? embeds : [
       embed({
@@ -258,16 +269,17 @@ const command: SlashCommand = {
 
   autocomplete: async (interaction: AutocompleteInteraction) => {
     const focusedOption = interaction.options.getFocused(true);
-    const respondWithNotFound = async (msg: "nickname" | "image") => { 
+    const respondWithNotFound = async (msg: "nickname" | "image") => {
       const messages: Record<typeof msg, string> = {
-	"nickname": "That sexy mf wasn't found :/",
-	"image": "That sexy mf doesn't have any images."
-      }
+        "nickname": "That sexy mf wasn't found :/",
+        "image": "That sexy mf doesn't have any images.",
+      };
 
       await interaction.respond([{
         name: messages[msg],
         value: "",
-      }]); }
+      }]);
+    };
 
     switch (focusedOption.name) {
       case "nickname": {
