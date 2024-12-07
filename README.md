@@ -1,4 +1,4 @@
-# [**People from high seas, please view this readme on github. It has a better renderer.**](https://github.com/jsw08/DCBot/blob/master/README.md)
+# [**View this page on github for it to render properly.**](https://github.com/jsw08/DCBot/blob/master/README.md)
 # Jsw's slaafje - my personal Discord bot
 
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
