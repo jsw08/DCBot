@@ -8,7 +8,7 @@ const configKeys = [
   "SEXY_PORT",
   "SEXY_URL",
   "SEXY_TITLE_URL",
-  "LASTFM_KEY"
+  "LASTFM_KEY",
 ] as const;
 type ConfigKeys = typeof configKeys[number];
 
