@@ -98,12 +98,13 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
     DO UPDATE SET lastfm_username = ${username};
   `;
 
-  interaction.reply({ embeds: [embed({
-    title: "LastFM",
-    message: `LastFM username set to '${username}'.`,
-    kindOfEmbed: "success",
-  })], 
-    ephemeral: true
+  interaction.reply({
+    embeds: [embed({
+      title: "LastFM",
+      message: `LastFM username set to '${username}'.`,
+      kindOfEmbed: "success",
+    })],
+    ephemeral: true,
   });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
