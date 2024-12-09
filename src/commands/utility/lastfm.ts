@@ -87,7 +87,7 @@ const checkLastFmUserExists = async (
 const setHandler = async (interaction: ChatInputCommandInteraction) => {
   const username = interaction.options.getString("username", true);
   if (!(await checkLastFmUserExists(username, config.LASTFM_KEY))) {
-    interaction.reply({ embeds: [noUserEmbed] });
+    interaction.reply({ embeds: [noUserEmbed], ephemeral: true });
     return;
   }
 
@@ -101,8 +101,10 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
   interaction.reply({ embeds: [embed({
     title: "LastFM",
     message: `LastFM username set to '${username}'.`,
-    kindOfEmbed: "success"
-  })] });
+    kindOfEmbed: "success",
+  })], 
+    ephemeral: true
+  });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   const username = interaction.options.getString("username") ?? (() => {
@@ -112,7 +114,7 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   })();
 
   if (!username) {
-    await interaction.reply({ embeds: [noUserEmbed] });
+    await interaction.reply({ embeds: [noUserEmbed], ephemeral: true });
   }
 
   const np: Track | boolean = await getCurrentlyPlayingTrack(
