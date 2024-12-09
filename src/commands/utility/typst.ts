@@ -18,7 +18,7 @@ import { checkOrCreateDir } from "$utils/dir.ts";
 import { join } from "@std/path/join";
 import { config } from "$utils/config.ts";
 
-const TYPST_DIR = join(config.DATA_DIR, "typst")
+const TYPST_DIR = join(config.DATA_DIR, "typst");
 // Typst installed check
 let typstInstalled = true;
 try {
@@ -38,7 +38,7 @@ try {
 }
 
 // Create seperate typst directory.
-checkOrCreateDir(TYPST_DIR)
+checkOrCreateDir(TYPST_DIR);
 
 // Typst running and checking errors
 type TypstError = { error: "WriteZero" | "TypstError"; errorMsg?: string };
@@ -106,7 +106,7 @@ const typstMessage = async (
   const tempImageFile = await Deno.makeTempFile({
     prefix: "typst_",
     suffix: ".png",
-    dir: TYPST_DIR
+    dir: TYPST_DIR,
   });
 
   const typst = await typstRender(input, transparant, tempImageFile);
