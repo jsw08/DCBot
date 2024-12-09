@@ -98,7 +98,11 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
     DO UPDATE SET lastfm_username = ${username};
   `;
 
-  interaction.reply({ content: `lastfm set to ${username}` });
+  interaction.reply({ embeds: [embed({
+    title: "LastFM",
+    message: `LastFM username set to '${username}'.`,
+    kindOfEmbed: "success"
+  })] });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   const username = interaction.options.getString("username") ?? (() => {
