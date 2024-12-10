@@ -4,13 +4,15 @@ import { embed } from "$utils/embed.ts";
 import db from "$utils/db.ts";
 import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
+import { DiscordAPIError } from "discord.js";
 
 db.sql`
   CREATE TABLE IF NOT EXISTS reminders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     discord_id TEXT NOT NULL,
     date TEXT NOT NULL,
-    message TEXT NOT NULL
+    message text not null,
+    message_id text not null
   )
 `;
 
@@ -48,28 +50,18 @@ const command: SlashCommand = {
         .setDescription("The message you're sending yourself.")
         .setRequired(true)
     ),
-  execute: (interaction) => {
-    let cont: boolean = true
-    interaction.user.send("test").then((v) => v.delete()).catch((v) => {
-      interaction.reply({
-        embeds: [embed({
-          title: "DM Error",
-          message: "I'm unable to send you a direct message.",
-          kindOfEmbed: "error",
-        })],
-      });
-      cont = false;
-    });
-    if (cont) return
-
+  execute: async (interaction) => {
+    const message = interaction.options.getString("message", true);
     db.exec(
       "INSERT INTO reminders (discord_id, date, message) VALUES (:discord_id, :date, :message)",
       {
-        discord_id: interaction.user.id,
-        date: "",
-        message: interaction.options.getString("message", true),
+	discord_id: interaction.user.id,
+	date: "",
+	message: message,
       },
     );
+
+    interaction.user.createDM();
   },
 };
 
