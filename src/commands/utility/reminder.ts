@@ -31,6 +31,8 @@ type Reminder = {
 };
 
 const btWrap = (v: string) => "```" + v + "```";
+const dcTimestamp = (date: number, type: string) => `<t:${Math.floor(date/1000)}:${type}>`
+
 const sendReminders = () => {
   const reminders = db
     .sql`SELECT message, id, discord_id, date FROM reminders WHERE confirmed = 1 AND date < unixepoch('now')`;
@@ -39,9 +41,7 @@ const sendReminders = () => {
     client.users.send(reminder.discord_id, {
       embeds: [embed({
         title: "Reminder",
-        message: `You asked me to remember\n${btWrap(reminder.message)}' at <t:${
-          Math.floor(+reminder.date / 1000)
-        }:f>.`,
+        message: `You asked me to remember\n${btWrap(reminder.message)} at ${dcTimestamp(+reminder.date, "t")}`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -127,7 +127,7 @@ const command: SlashCommand = {
     ).get<{ id: string }>(
       {
         discord_id: interaction.user.id,
-        date: date.getTime() + 20000,
+        date: date.getTime(),
         message: message,
         send_date: Date.now() + 2000,
         confirmed: false,
@@ -136,21 +136,19 @@ const command: SlashCommand = {
 
     const confirm = new ButtonBuilder()
       .setLabel("Confirm!")
-      .setEmoji("☑️")
+      .setEmoji("✔️")
       .setCustomId(`${command.command.name}_confirm_${id}`)
       .setStyle(ButtonStyle.Success);
     const cancel = new ButtonBuilder()
       .setLabel("Cancel")
-      .setEmoji("❌")
+      .setEmoji("✖️")
       .setCustomId(`${command.command.name}_cancel_${id}`)
       .setStyle(ButtonStyle.Danger);
     await interaction.reply({
       embeds: [embed({
         title: "Reminder confirmation",
         message:
-          `Would you like to be reminded of the following message at '<t:${
-            Math.floor(date.getTime() / 1000 + 20)
-          }:f>'? You have two minutes to decide.\n${btWrap(message)}`,
+          `Would you like to be reminded of the following message at ${dcTimestamp(date.getTime(), "t")}? You have two minutes to decide.\n${btWrap(message)}`,
 
         kindOfEmbed: "normal",
       })],
