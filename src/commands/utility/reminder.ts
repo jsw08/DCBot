@@ -9,6 +9,7 @@ import db from "$utils/db.ts";
 import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
 import { ButtonStyle } from "discord.js";
+import {parseDate} from "chrono-node"
 
 db.sql`
   CREATE TABLE IF NOT EXISTS reminders (
@@ -29,6 +30,7 @@ type Reminder = {
   confirmed: number;
 };
 
+const btWrap = (v: string) => "```" + v + "```";
 const sendReminders = () => {
   const reminders = db
     .sql`SELECT message, id, discord_id, date FROM reminders WHERE confirmed = 1 AND date < unixepoch('now')`;
@@ -36,10 +38,10 @@ const sendReminders = () => {
     const reminder = i as Reminder;
     client.users.send(reminder.discord_id, {
       embeds: [embed({
-        title: "Reminding something for you :)",
-        message: `You told me to remember '${reminder.message}' at <t:${
+        title: "Reminder",
+        message: `You asked me to remember\n${btWrap(reminder.message)}' at <t:${
           Math.floor(+reminder.date / 1000)
-        }:T>!`,
+        }:f>.`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -59,7 +61,13 @@ const command: SlashCommand = {
     .addStringOption((opts) =>
       opts
         .setName("message")
-        .setDescription("The message you're sending yourself.")
+        .setDescription("Your reminder message.")
+        .setRequired(true)
+    )
+    .addStringOption((opts) =>
+      opts
+        .setName("date")
+        .setDescription("Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.")
         .setRequired(true)
     ),
   execute: async (interaction) => {
@@ -68,7 +76,7 @@ const command: SlashCommand = {
         embeds: [embed({
           title: "Reminder ERROR",
           message:
-            `Please install this bot into your account. Else I won't be able to send a DM to you.`,
+            `To receive direct messages from me, please install this bot in your account.`,
           kindOfEmbed: "error",
         })],
         components: [
@@ -88,19 +96,44 @@ const command: SlashCommand = {
     }
 
     const message = interaction.options.getString("message", true);
+    const date = parseDate(interaction.options.getString("date", true))
+
+    if (!date) {
+      interaction.reply({
+        embeds: [embed({
+          title: "Reminder ERROR",
+          message:
+            `Chrono couldn't interpret this string. Please refer to the supported formats on their GitHub page.`,
+          kindOfEmbed: "error",
+        })],
+        components: [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setLabel("Chrono")
+              .setURL(
+                `https://github.com/wanasit/chrono`,
+              )
+              .setEmoji("🕙")
+              .setStyle(ButtonStyle.Link),
+          ),
+        ],
+        ephemeral: true,
+      });
+      return
+    }
+
     const { id } = db.prepare(
       "INSERT INTO reminders (discord_id, date, message, send_date, confirmed) VALUES (:discord_id, :date, :message, :send_date, :confirmed) RETURNING id",
     ).get<{ id: string }>(
       {
         discord_id: interaction.user.id,
-        date: Date.now() + 20000,
+        date: date.getTime() + 20000,
         message: message,
         send_date: Date.now() + 2000,
         confirmed: false,
       },
     )!;
 
-    const btWrap = (v: string) => "```" + v + "```";
     const confirm = new ButtonBuilder()
       .setLabel("Confirm!")
       .setEmoji("☑️")
@@ -115,9 +148,10 @@ const command: SlashCommand = {
       embeds: [embed({
         title: "Reminder confirmation",
         message:
-          `Are you sure that you'd like to be reminded of the following message at '<t:${
-            Math.floor(Date.now() / 1000 + 20)
-          }:T>'?\n${btWrap(message)}`,
+          `Would you like to be reminded of the following message at '<t:${
+            Math.floor(date.getTime() / 1000 + 20)
+          }:f>'? You have two minutes to decide.\n${btWrap(message)}`,
+
         kindOfEmbed: "normal",
       })],
       components: [
@@ -136,8 +170,7 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder ERROR",
-          message:
-            "Something went wrong with updating your reminder in the database. Please try creating a new reminder.",
+          message: "There was an issue updating your reminder in the database. Please try creating a new one.",
           kindOfEmbed: "error",
         })],
         components: [],
@@ -159,7 +192,7 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder confirmed",
-          message: `Reminder has been set! It will go off in (around) <t:${
+          message: `Your reminder has been successfully set! It will trigger in approximately <t:${
             Math.floor(+date.date / 1000)
           }:R>.`,
           kindOfEmbed: "success",
@@ -178,7 +211,7 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder canceled",
-          message: `Removed reminder from the database!`,
+          message: `The reminder has been successfully removed from the database!`,
           kindOfEmbed: "success",
         })],
         components: [],

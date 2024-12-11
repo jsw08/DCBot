@@ -14,6 +14,7 @@
     "@std/http": "jsr:@std/http@^1.0.11",
     "@std/path": "jsr:@std/path@^1.0.8",
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
+    "chrono-node": "npm:chrono-node@^2.7.7",
     "discord.js": "npm:discord.js@^14.16.3",
     "@discordjs/core": "npm:@discordjs/core@^2.0.0"
   }
