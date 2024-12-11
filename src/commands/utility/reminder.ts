@@ -31,7 +31,7 @@ const sendReminders = () => {
     client.users.send(reminder.discord_id, {
       embeds: [embed({
         title: "Reminding something for you :)",
-        message: `You told me to remember '${reminder.message}'!`,
+        message: `You told me to remember '${reminder.message}' at <t:${Math.floor(+reminder.date/1000)}:T>!`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -78,9 +78,9 @@ const command: SlashCommand = {
       "INSERT INTO reminders (discord_id, date, message, send_date, confirmed) VALUES (:discord_id, :date, :message, :send_date, :confirmed)",
       {
 	discord_id: interaction.user.id,
-	date: new Date(),
+	date: Math.floor(Date.now()/1000)+20,
 	message: message,
-	send_date: Date.now(),
+	send_date: Math.floor(Date.now()),
 	confirmed: true
       },
     );
