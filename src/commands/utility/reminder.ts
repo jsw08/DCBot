@@ -36,7 +36,7 @@ const sendReminders = () => {
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
   })
-  const q = db.sql`DELETE FROM reminders WHERE confirmed = 0 AND send_date < unixepoch('now', '-2 seconds');`
+  const q = db.sql`DELETE FROM reminders WHERE confirmed = 0 AND send_date < unixepoch('now', '-2 minutes');`
   !q.length || console.log(q)
 };
 sendReminders();
@@ -84,6 +84,11 @@ const command: SlashCommand = {
 	confirmed: true
       },
     );
+
+    await interaction.reply({embeds: [embed({
+      title: "Reminder confirmation",
+      message: "Are you sure that you'd like to be reminded of ${message} at '<t:${Math.floor(date.getTime()/1000)}:T>'?"
+    })]})
   },
 };
 
