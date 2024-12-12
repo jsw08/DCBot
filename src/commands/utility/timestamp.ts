@@ -1,7 +1,14 @@
-import { SlashCommandBuilder } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  SlashCommandBuilder,
+} from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
 import { ChatInputCommandInteraction } from "discord.js";
+import { parseDate } from "chrono-node";
+import { chronoErrorReply } from "$utils/chrono.ts";
 
 const errorMessage = (
   interaction: ChatInputCommandInteraction,
@@ -23,9 +30,9 @@ const command: SlashCommand = {
     .setDescription("Generate a discord-timestamp.")
     .addStringOption((opts) =>
       opts
-        .setName("time")
+        .setName("date")
         .setDescription(
-          "Please enter a valid JavaScript date. The server is in CET, but JS date strings can use UTC times.",
+          "Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.",
         )
         .setRequired(true)
     )
@@ -47,15 +54,15 @@ const command: SlashCommand = {
         ])
     ),
   execute: (interaction) => {
-    const timestamp = interaction.options.getString("time", true);
     const type = interaction.options.getString("type", true);
-    const date = Date.parse(timestamp);
+    const date = parseDate(interaction.options.getString("date", true));
 
-    if (isNaN(date)) {
-      return errorMessage(interaction, "Your date string is invalid.");
+    if (!date) {
+      interaction.reply(chronoErrorReply);
+      return;
     }
 
-    const dcTimestamp = `<t:${Math.floor(date / 1000)}:${type}>`;
+    const dcTimestamp = `<t:${Math.floor(date.getTime() / 1000)}:${type}>`;
     const bt = "```"; // backticks
     interaction.reply({
       embeds: [embed({

@@ -10,6 +10,7 @@ import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
 import { ButtonStyle } from "discord.js";
 import { parseDate } from "chrono-node";
+import { chronoErrorReply } from "$utils/chrono.ts";
 
 db.sql`
   CREATE TABLE IF NOT EXISTS reminders (
@@ -104,28 +105,7 @@ const command: SlashCommand = {
     const date = parseDate(interaction.options.getString("date", true));
 
     if (!date) {
-      interaction.reply({
-        embeds: [embed({
-          title: "Reminder ERROR",
-          message: `
-	    Chrono couldn't interpret this string. Please refer to the supported formats on their GitHub page, or take a look at these examples:
-	    - Today, Tomorrow, Yesterday, Last Friday, etc \n- in 1s(econd) \n- tomorrow 12:30 \n- 20:00 EST
-	  `,
-          kindOfEmbed: "error",
-        })],
-        components: [
-          new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setLabel("Chrono")
-              .setURL(
-                `https://github.com/wanasit/chrono`,
-              )
-              .setEmoji("🕙")
-              .setStyle(ButtonStyle.Link),
-          ),
-        ],
-        ephemeral: true,
-      });
+      interaction.reply(chronoErrorReply);
       return;
     }
 
