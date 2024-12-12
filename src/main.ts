@@ -10,7 +10,7 @@ if (Object.values(config).some((v) => v === "")) {
 }
 checkOrCreateDir(config.DATA_DIR);
 
-const client = new Client({
+export const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
