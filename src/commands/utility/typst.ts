@@ -58,6 +58,9 @@ const typstRender = async (
   transparant: boolean,
   outputPath: string,
 ): Promise<void | TypstError> => {
+  const formatDate = (n: number): string => n.toString().padStart(2, '0');
+  const now = new Date()
+
   const typstCommand = new Deno.Command("typst", {
     args: [
       "compile",
@@ -65,6 +68,8 @@ const typstRender = async (
       TYPST_DIR,
       "-f",
       "png",
+      "--input",
+      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${formatDate(now.getDate())} ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${formatDate(now.getSeconds())}`}`,
       "-",
       outputPath,
     ],
