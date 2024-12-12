@@ -42,9 +42,7 @@ const sendReminders = () => {
     client.users.send(reminder.discord_id, {
       embeds: [embed({
         title: "Reminder",
-        message: `You asked me to remember\n${btWrap(reminder.message)} at ${
-          dcTimestamp(+reminder.date, "t")
-        }`,
+        message: `You asked me to remember the following message at ${dcTimestamp(+reminder.date, "t")}.\n${btWrap(reminder.message)}`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
