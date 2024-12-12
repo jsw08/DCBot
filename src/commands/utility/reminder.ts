@@ -42,7 +42,9 @@ const sendReminders = () => {
     client.users.send(reminder.discord_id, {
       embeds: [embed({
         title: "Reminder",
-        message: `You asked me to remember the following message at ${dcTimestamp(+reminder.date, "t")}.\n${btWrap(reminder.message)}`,
+        message: `You asked me to remember the following message at ${
+          dcTimestamp(+reminder.date, "t")
+        }.\n${btWrap(reminder.message)}`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -105,8 +107,10 @@ const command: SlashCommand = {
       interaction.reply({
         embeds: [embed({
           title: "Reminder ERROR",
-          message:
-            `Chrono couldn't interpret this string. Please refer to the supported formats on their GitHub page.`,
+          message: `
+	    Chrono couldn't interpret this string. Please refer to the supported formats on their GitHub page, or take a look at these examples:
+	    - Today, Tomorrow, Yesterday, Last Friday, etc \n- in 1s(econd) \n- tomorrow 12:30 \n- 20:00 EST
+	  `,
           kindOfEmbed: "error",
         })],
         components: [
@@ -151,7 +155,7 @@ const command: SlashCommand = {
       embeds: [embed({
         title: "Reminder confirmation",
         message: `Would you like to be reminded of the following message at ${
-          dcTimestamp(date.getTime(), "t")
+          dcTimestamp(date.getTime(), "f")
         }? You have two minutes to decide.\n${btWrap(message)}`,
 
         kindOfEmbed: "normal",
