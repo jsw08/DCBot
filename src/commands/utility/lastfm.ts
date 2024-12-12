@@ -53,7 +53,6 @@ const getCurrentlyPlayingTrack = async (
     }
 
     const currentTrack = tracks[0];
-    console.info(currentTrack);
     return {
       artist: currentTrack.artist["#text"],
       title: currentTrack.name,
