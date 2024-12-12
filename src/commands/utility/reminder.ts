@@ -109,7 +109,7 @@ const command: SlashCommand = {
           title: "Reminder ERROR",
           message: `
 	    Chrono couldn't interpret this string. Please refer to the supported formats on their GitHub page, or take a look at these examples:
-	    - Today, Tomorrow, Yesterday, Last Friday, etc \n- in 1s(econd) \n- over 10min \n- tomorrow 12:30 \n- 20:00 EST
+	    - Today, Tomorrow, Yesterday, Last Friday, etc \n- in 1s(econd) \n- tomorrow 12:30 \n- 20:00 EST
 	  `,
           kindOfEmbed: "error",
         })],
