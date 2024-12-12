@@ -9,7 +9,7 @@ import db from "$utils/db.ts";
 import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
 import { ButtonStyle } from "discord.js";
-import {parseDate} from "chrono-node"
+import { parseDate } from "chrono-node";
 
 db.sql`
   CREATE TABLE IF NOT EXISTS reminders (
@@ -31,7 +31,8 @@ type Reminder = {
 };
 
 const btWrap = (v: string) => "```" + v + "```";
-const dcTimestamp = (date: number, type: string) => `<t:${Math.floor(date/1000)}:${type}>`
+const dcTimestamp = (date: number, type: string) =>
+  `<t:${Math.floor(date / 1000)}:${type}>`;
 
 const sendReminders = () => {
   const reminders = db
@@ -41,7 +42,9 @@ const sendReminders = () => {
     client.users.send(reminder.discord_id, {
       embeds: [embed({
         title: "Reminder",
-        message: `You asked me to remember\n${btWrap(reminder.message)} at ${dcTimestamp(+reminder.date, "t")}`,
+        message: `You asked me to remember\n${btWrap(reminder.message)} at ${
+          dcTimestamp(+reminder.date, "t")
+        }`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -67,7 +70,9 @@ const command: SlashCommand = {
     .addStringOption((opts) =>
       opts
         .setName("date")
-        .setDescription("Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.")
+        .setDescription(
+          "Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.",
+        )
         .setRequired(true)
     ),
   execute: async (interaction) => {
@@ -96,7 +101,7 @@ const command: SlashCommand = {
     }
 
     const message = interaction.options.getString("message", true);
-    const date = parseDate(interaction.options.getString("date", true))
+    const date = parseDate(interaction.options.getString("date", true));
 
     if (!date) {
       interaction.reply({
@@ -119,7 +124,7 @@ const command: SlashCommand = {
         ],
         ephemeral: true,
       });
-      return
+      return;
     }
 
     const { id } = db.prepare(
@@ -147,8 +152,9 @@ const command: SlashCommand = {
     await interaction.reply({
       embeds: [embed({
         title: "Reminder confirmation",
-        message:
-          `Would you like to be reminded of the following message at ${dcTimestamp(date.getTime(), "t")}? You have two minutes to decide.\n${btWrap(message)}`,
+        message: `Would you like to be reminded of the following message at ${
+          dcTimestamp(date.getTime(), "t")
+        }? You have two minutes to decide.\n${btWrap(message)}`,
 
         kindOfEmbed: "normal",
       })],
@@ -168,7 +174,8 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder ERROR",
-          message: "There was an issue updating your reminder in the database. Please try creating a new one.",
+          message:
+            "There was an issue updating your reminder in the database. Please try creating a new one.",
           kindOfEmbed: "error",
         })],
         components: [],
@@ -190,9 +197,10 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder confirmed",
-          message: `Your reminder has been successfully set! It will trigger in approximately <t:${
-            Math.floor(+date.date / 1000)
-          }:R>.`,
+          message:
+            `Your reminder has been successfully set! It will trigger in approximately <t:${
+              Math.floor(+date.date / 1000)
+            }:R>.`,
           kindOfEmbed: "success",
         })],
         components: [],
@@ -209,7 +217,8 @@ const command: SlashCommand = {
       interaction.update({
         embeds: [embed({
           title: "Reminder canceled",
-          message: `The reminder has been successfully removed from the database!`,
+          message:
+            `The reminder has been successfully removed from the database!`,
           kindOfEmbed: "success",
         })],
         components: [],

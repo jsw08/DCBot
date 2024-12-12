@@ -9,7 +9,7 @@ const configKeys = [
   "SEXY_URL",
   "SEXY_TITLE_URL",
   "LASTFM_KEY",
-  "REMINDER_TIMEOUT"
+  "REMINDER_TIMEOUT",
 ] as const;
 type ConfigKeys = typeof configKeys[number];
 
