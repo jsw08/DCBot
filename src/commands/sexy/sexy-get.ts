@@ -15,7 +15,7 @@ import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
 import {
   dir,
-  imageFileTypes,
+  fileTypes,
   usernameAutocomplete,
 } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
@@ -32,7 +32,7 @@ const getSexyImages = async (
     );
 
     for await (const image of sexyImageFiles) {
-      if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
+      if (!fileTypes.some((v) => image.name.endsWith(v))) continue;
       if (images[images.length - 1].length === 4) images.push([]);
       images[images.length - 1].push(image.name);
     }

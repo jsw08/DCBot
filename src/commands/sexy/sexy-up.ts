@@ -3,7 +3,7 @@ import { AutocompleteInteraction, SlashCommandBuilder } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import {
   dir,
-  imageFileTypes,
+  fileMimes,
   usernameAutocomplete,
 } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
@@ -13,9 +13,6 @@ const checkFilename = (str: string): boolean => {
   return !invalidCharsPattern.test(str);
 };
 
-const contentTypes: string[] = imageFileTypes.map((v) =>
-  `image/${v.replace(".", "")}`
-);
 const command: SlashCommand = {
   permissions: "select_few",
   inDm: true,
@@ -55,7 +52,7 @@ const command: SlashCommand = {
 
     if (
       checkFilename(filename) &&
-      !contentTypes.includes(image.contentType ?? "")
+      !fileMimes.includes(image.contentType ?? "")
     ) {
       await interaction.reply({
         embeds: [embed({
