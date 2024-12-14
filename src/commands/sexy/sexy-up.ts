@@ -1,11 +1,7 @@
 import { SlashCommand } from "$/commandLoader.ts";
 import { AutocompleteInteraction, SlashCommandBuilder } from "discord.js";
 import { embed } from "$utils/embed.ts";
-import {
-  dir,
-  fileMimes,
-  usernameAutocomplete,
-} from "$utils/sexyHelper.ts";
+import { dir, fileMimes, usernameAutocomplete } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 
 const checkFilename = (str: string): boolean => {
@@ -49,6 +45,7 @@ const command: SlashCommand = {
     const nickname = interaction.options.getString("nickname", true);
     const filename = interaction.options.getString("filename", true);
     const image = interaction.options.getAttachment("image", true);
+    console.log(image.contentType);
 
     if (
       checkFilename(filename) &&
@@ -57,7 +54,7 @@ const command: SlashCommand = {
       await interaction.reply({
         embeds: [embed({
           title: "Error!",
-          message: "Please provide valid parameters.",
+          message: "Please provide a valid name and file.",
           kindOfEmbed: "error",
         })],
         ephemeral: true,

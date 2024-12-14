@@ -27,25 +27,29 @@ export const usernameAutocomplete = async (
   return options.map((v) => ({ name: v, value: v }));
 };
 
-const upperArr = (v: string[]) => v.flatMap(v => [v, v.toUpperCase()])
-const mimeMap = (extensions: string[], type: string) => extensions.map(v => `${type}/${v.replace(".", "")}`)
-const imageFileTypes: string[] = upperArr([
+const upperArr = (v: string[]) => v.flatMap((v) => [v, v.toUpperCase()]);
+const mimeMap = (extensions: string[], type: string) =>
+  extensions.map((v) => `${type}/${v.replace(".", "")}`);
+export const imageFileTypes: string[] = upperArr([
   ".gif",
   ".jpeg",
   ".jpg",
   ".png",
   ".webp",
-])
-const videoFileTypes: string[] = upperArr([
+]);
+export const videoFileTypes: string[] = upperArr([
   ".mp4",
   ".webm",
-  ".mov"
-])
+  ".mkv",
+]);
 
-export const fileTypes: string[] = [...videoFileTypes, ...imageFileTypes]
+export const fileTypes: string[] = [...videoFileTypes, ...imageFileTypes];
 export const fileMimes: string[] = [
   ...mimeMap(imageFileTypes, "image"),
-  ...mimeMap(videoFileTypes, "video")
+  ...mimeMap(videoFileTypes, "video"),
+  ...[
+    "video/x-matroska", // the odd one out
+  ],
 ];
 
 export const dir = join(config.DATA_DIR, "sexy");

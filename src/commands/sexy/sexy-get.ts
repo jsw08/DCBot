@@ -6,6 +6,7 @@ import {
   ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
+  EmbedBuilder,
   InteractionResponse,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
@@ -17,6 +18,7 @@ import {
   dir,
   fileTypes,
   usernameAutocomplete,
+  videoFileTypes,
 } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
 import { serveDir } from "@std/http/file-server";
@@ -87,24 +89,23 @@ const imagesPageProps = (
   userId: string,
   currentPage: number,
 ): BaseMessageOptions => {
-  const embeds = images[currentPage].map((v) =>
-    embed({
+  const sexyUrl = (file: string) => new URL(`/${nickname}/${file}`, config.SEXY_URL).toString();
+  const embeds = images[currentPage].map((v) => {
+    const url = sexyUrl(v)
+    const isVid = videoFileTypes.some((t) => v.endsWith(t));
+
+    const emb: EmbedBuilder = embed({
       title: nickname.at(0)?.toUpperCase() + nickname.slice(1),
+      message: isVid ? url : "",
       kindOfEmbed: "success",
     })
-      .setImage(
-        new URL(`/${nickname}/${v}`, config.SEXY_URL)
-          .toString(),
-      )
       .setURL(config.SEXY_TITLE_URL)
-      .setAuthor({ name: "Images may take a moment to load." })
-  );
-  images[currentPage].map((v) =>
-    console.log(
-      new URL(`/${nickname}/${v}`, config.SEXY_URL)
-        .toString(),
-    )
-  );
+      .setAuthor({ name: "Images may take a moment to load." });
+
+    isVid || emb.setImage(url);
+    return emb;
+  });
+
   return {
     embeds: embeds.length ? embeds : [
       embed({
