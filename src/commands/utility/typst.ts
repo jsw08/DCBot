@@ -290,6 +290,7 @@ const command: SlashCommand = {
       return
     }
     
+    await interaction.deferUpdate();
     await interaction.deleteReply()
   }
 };

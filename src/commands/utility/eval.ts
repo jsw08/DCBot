@@ -12,6 +12,8 @@ import {
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
 import { SlashCommandSubcommandBuilder } from "discord.js";
+import { delButtonRow } from "$utils/deleteBtn.ts";
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 
 const codeReplyOptions = (
   input: string,
@@ -67,6 +69,7 @@ const codeHandler = async (
         }\`\`\``,
         kindOfEmbed: "error",
       })],
+      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
     });
   }
 };
@@ -124,6 +127,7 @@ const command: SlashCommand = {
         .setName("multiline")
         .setDescription("For your longer codepieces.")
     ),
+
   execute: async (interaction) => {
     const subc = interaction.options.getSubcommand(true);
     const output = interaction.options.getBoolean("output");
@@ -137,6 +141,7 @@ const command: SlashCommand = {
     await interaction.deferReply();
     await codeHandler(code, interaction, output);
   },
+
   modal: async (interaction) => {
     const output = interaction.customId === `${command.command.name}_true`;
     const code = interaction.fields.getField("code");
@@ -144,6 +149,23 @@ const command: SlashCommand = {
     await interaction.deferReply();
     await codeHandler(code.value, interaction, output);
   },
+
+  button: async (interaction) => {
+    const id = interaction.customId;
+    const command = id.split("_")[1];
+
+    if (command !== "delete") return
+    if (interaction.user.id !== id.split("_")[2]) {
+      await interaction.reply({
+	embeds: [accessDeniedEmbed],
+	ephemeral: true
+      })
+      return
+    }
+    
+    await interaction.deferUpdate();
+    await interaction.deleteReply()
+  }
 };
 
 export default command;
