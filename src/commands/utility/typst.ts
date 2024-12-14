@@ -17,6 +17,9 @@ import { embed } from "$utils/embed.ts";
 import { checkOrCreateDir } from "$utils/dir.ts";
 import { join } from "@std/path/join";
 import { config } from "$utils/config.ts";
+import { delButtonRow } from "$utils/deleteBtn.ts";
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+
 
 const TYPST_DIR = join(config.DATA_DIR, "typst");
 // Typst installed check
@@ -127,17 +130,18 @@ const typstMessage = async (
 // Interaction handler
 const typstHandler = async (
   interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
-  input: string,
   transparantBackground: boolean,
   attachFile: boolean,
+  input?: string,
 ): Promise<void> => {
   if (!input) {
     await interaction.followUp({
       embeds: [embed({
         title: "Typst",
         kindOfEmbed: "error",
-        message: "Please provide a valid input.",
+        message: "Please provide valid typst code.",
       })],
+      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
     });
     return;
   }
@@ -153,6 +157,7 @@ const typstHandler = async (
             : "",
         kindOfEmbed: "error",
       })],
+      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
     });
     return;
   }
@@ -242,6 +247,7 @@ const command: SlashCommand = {
             "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
           kindOfEmbed: "error",
         })],
+	components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
       });
       return;
     }
@@ -259,28 +265,33 @@ const command: SlashCommand = {
     const code = interaction.options.getString("code", true);
 
     await interaction.deferReply();
-    await typstHandler(interaction, code, transparantBackground, includeFile);
+    await typstHandler(interaction, transparantBackground, includeFile, code);
   },
+
   modal: async (interaction) => {
     const file = interaction.customId.split("_")[2] === "1";
     const transparant = interaction.customId.split("_")[1] === "1";
     const code = interaction.fields.getField("code");
 
-    if (!code.value) {
-      await interaction.reply({
-        embeds: [embed({
-          title: "Typst",
-          message: "Please provide valid typst code.",
-          kindOfEmbed: "error",
-        })],
-        ephemeral: true,
-      });
-      return;
-    }
-
     await interaction.deferReply();
-    await typstHandler(interaction, code.value, transparant, file);
+    await typstHandler(interaction, transparant, file, code.value);
   },
+
+  button: async (interaction) => {
+    const id = interaction.customId;
+    const command = id.split("_")[1];
+
+    if (command !== "delete") return
+    if (interaction.user.id !== id.split("_")[2]) {
+      await interaction.reply({
+	embeds: [accessDeniedEmbed],
+	ephemeral: true
+      })
+      return
+    }
+    
+    await interaction.deleteReply()
+  }
 };
 
 export default command;
