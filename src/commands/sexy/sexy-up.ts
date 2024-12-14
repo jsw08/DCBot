@@ -39,7 +39,7 @@ const command: SlashCommand = {
           "Pick a descriptive filename (no ext like .png).",
         )
         .setMinLength(4)
-        .setMaxLength(20)
+        .setMaxLength(60)
         .setRequired(true)
     )
     .addAttachmentOption((opt) =>
