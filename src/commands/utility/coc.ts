@@ -2,44 +2,61 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  Interaction,
+  SelectMenuBuilder,
   SlashCommandBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
+import { embed } from "$utils/embed.ts";
 
 const languages = [
-  "Javascript",
-  "VB.NET",
-  "TypeScript",
-  "Swift",
-  "Scala",
-  "Rust",
-  "Kotlin",
-  "Lua",
-  "ObjectiveC",
-  "OCaml",
-  "Pascal",
-  "Perl",
-  "PHP",
-  "Python3",
-  "Ruby",
-  "Go",
-  "Groovy",
-  "Haskell",
-  "Java",
+  "All",
+  "Bash",
+  "C",
+  "C#",
+  "C++",
   "Clojure",
   "D",
   "Dart",
   "F#",
-  "C",
-  "C#",
-  "Bash",
-  "C++",
+  "Go",
+  "Groovy",
+  "Haskell",
+  "Java",
+  "Javascript",
+  "Kotlin",
+  "Lua",
+  "OCaml",
+  "ObjectiveC",
+  "PHP",
+  "Pascal",
+  "Perl",
+  "Python3",
+  "Ruby",
+  "Rust",
+  "Scala",
+  "Swift",
+  "TypeScript",
+  "VB.NET",
 ];
 type Languages = (typeof languages[number])[];
 
+const validateLanguagesInput = (input: string[]): undefined | string => {
+  const found = input.slice(0, -1).find((v) => !languages.includes(v));
+
+  if (found) {
+    return found;
+  }
+}
+
 const gameModes = ["FASTEST", "SHORTEST", "REVERSE"];
 type GameModes = (typeof gameModes[number])[];
+const getAllGameModeCombinations = (): GameModes[] => {
+  return [...Array(1 << gameModes.length).keys()]
+    .slice(1)
+    .map(i => gameModes.filter((_, j) => i & (1 << j)));
+}
 
 const createPrivateClash = async (
   langs: Languages,
@@ -151,10 +168,25 @@ const command: SlashCommand = {
 
   command: new SlashCommandBuilder()
     .setName("coc")
-    .setDescription("Start clash of code games from discord!"),
+    .setDescription("Start clash of code games from discord!")
+    .addStringOption((opts) =>
+      opts
+        .setName("languages")
+        .setDescription("The coding lanugages for the clash (comma seperated).")
+        .setRequired(true)
+        .setAutocomplete(true)
+    )
+    .addStringOption((opts) => opts
+      .setName("gamemodes")
+      .setDescription("Kind of games to play.")
+      .setRequired(true)
+      .setChoices(getAllGameModeCombinations().flatMap(v => ({name: v.map(v => v.toLowerCase()).join(" & "), value: JSON.stringify(v)})))
+    ),
 
   execute: async (interaction) => {
-    const languages = ["Javascript"];
+    const languages = interaction.options.getString("languages", true)
+    const modes = interaction.options.getString("gamemodes", true)
+
 
     const clash = await createPrivateClash(languages, []);
     if (!clash) {
@@ -185,6 +217,27 @@ const command: SlashCommand = {
     });
   },
 
+  autocomplete: async (interaction) => {
+    const focusedOption = interaction.options.getFocused(true);
+
+    const input = focusedOption.value.split(",");
+    const found = validateLanguagesInput(input)
+
+    if (found) {
+      interaction.respond([{
+	name: `${found} is not a valid language.`,
+	value: "",
+      }]);
+      return;
+    }
+
+    interaction.respond(
+      (languages.filter((v) => v.startsWith(input[input.length - 1]))).slice(0, 25).map(
+	(v) => ({ name: v, value: v }),
+      ),
+    );
+  },
+
   button: async (interaction) => {
     const id = interaction.customId.split("_");
     const clashId = id[1];
@@ -200,7 +253,7 @@ const command: SlashCommand = {
       });
       return;
     } else if (command === "submit") {
-      const language = id[3];
+      const language = id[3] as Languages[number];
       const result = await submitCode(clashId, language);
       await interaction.reply({
         content: result
