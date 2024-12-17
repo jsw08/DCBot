@@ -6,7 +6,6 @@ import {
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
-import { embed } from "$utils/embed.ts";
 
 const firstUpper = (s: string) => s.slice(0, 1).toUpperCase() + s.slice(1);
 
@@ -44,7 +43,7 @@ type Languages = (typeof languages[number])[];
 
 const encodeString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const encodeLang = (langs: Languages): string =>
-  langs.map((v) => encodeString.at(languages.indexOf(v))).join();
+  langs.map((v) => encodeString.at(languages.indexOf(v))).join("");
 const decodeLang = (str: string): Languages =>
   [...str].map((v) => {
     const index = encodeString.indexOf(v);
@@ -54,7 +53,7 @@ const decodeLang = (str: string): Languages =>
     }
     return languages[index];
   });
-const validateLanguagesInput = (input: string[]): string | undefined => input.slice(0, -1).find((v) => !languages.includes(firstUpper(v)));
+const validateLanguagesInput = (input: string[]): string | undefined => input.slice(0, -1).find((v) => !languages.some(l => l.toLowerCase() === v.toLowerCase()));
    
 
 const gameModes = ["FASTEST", "SHORTEST", "REVERSE"];
@@ -149,26 +148,12 @@ const command: SlashCommand = {
     ),
 
   execute: async (interaction) => {
-    let languages = [...new Set(interaction.options.getString("languages", true)
-      .split(",")
-      .map(firstUpper))];
+    let langInput = languages.filter(v => interaction.options.getString("languages", true).split(",").map(v => v.toLowerCase()).includes(v.toLowerCase()));
     const modes = interaction.options.getString("gamemodes", true);
 
-    if (languages.includes("All")) languages = ["All"]
-    const validateLang = validateLanguagesInput(languages);
-    if (validateLang) {
-      interaction.reply({
-        embeds: [embed({
-          title: "Clash of code ERROR",
-          message: "Please provide a valid language.",
-          kindOfEmbed: "error",
-        })],
-      });
-      return;
-    }
-
+    if (langInput.includes("All")) langInput = ["All"]
     const clash = await createPrivateClash(
-      languages.includes("All") ? [] : languages,
+      langInput,
       JSON.parse(modes),
     );
     if (!clash) {
@@ -180,12 +165,12 @@ const command: SlashCommand = {
     }
 
     const startButton = new ButtonBuilder()
-      .setCustomId(`${command.command.name}_${clash}_start`)
+      .setCustomId(`${command.command.name}_start_${clash}`)
       .setLabel("Start game")
       .setStyle(ButtonStyle.Secondary);
     const restartButton = new ButtonBuilder()
       .setCustomId(
-        `${command.command.name}_${clash}_restart_${encodeLang(languages)}`,
+        `${command.command.name}_${clash}_restart_${encodeLang(langInput)}`,
       )
       .setLabel("Start game")
       .setStyle(ButtonStyle.Secondary);
@@ -193,7 +178,7 @@ const command: SlashCommand = {
     await interaction.reply({
       content: `https://www.codingame.com/clashofcode/clash/${clash}`,
       components: [new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(startButton)],
+        .addComponents(startButton, restartButton)],
     });
   },
 
@@ -227,12 +212,11 @@ const command: SlashCommand = {
 
   button: async (interaction) => {
     const id = interaction.customId.split("_");
-    const clashId = id[1];
-    const command = id[2];
+    const command = id[1];
 
     switch (command) {
       case "start": {
-	const result = await startClashByHandle(clashId);
+	const result = await startClashByHandle(id[2]);
 	await interaction.reply({
 	  content: result
 	    ? "Start signal sent."
@@ -242,7 +226,7 @@ const command: SlashCommand = {
 	break
       }
       case "restart": {
-	console.log(id[3], decodeLang(id[3]))
+	console.log(id[2], decodeLang(id[2]))
       }
     }
 
