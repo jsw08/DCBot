@@ -2,8 +2,6 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  Interaction,
-  SelectMenuBuilder,
   SlashCommandBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
@@ -43,20 +41,21 @@ const languages = [
 type Languages = (typeof languages[number])[];
 
 const validateLanguagesInput = (input: string[]): undefined | string => {
-  const found = input.slice(0, -1).find((v) => !languages.includes(v));
+  const found = input.slice(0, -1).find((v) => input.includes(v));
 
   if (found) {
     return found;
   }
-}
+};
+const firstUpper = (s: string) => s.slice(0, 1).toUpperCase() + s.slice(1);
 
 const gameModes = ["FASTEST", "SHORTEST", "REVERSE"];
 type GameModes = (typeof gameModes[number])[];
 const getAllGameModeCombinations = (): GameModes[] => {
   return [...Array(1 << gameModes.length).keys()]
     .slice(1)
-    .map(i => gameModes.filter((_, j) => i & (1 << j)));
-}
+    .map((i) => gameModes.filter((_, j) => i & (1 << j)));
+};
 
 const createPrivateClash = async (
   langs: Languages,
@@ -114,54 +113,6 @@ const startClashByHandle = async (clash: string) => {
   return true;
 };
 
-const submitCode = async (
-  clashId: string,
-  language: Languages[number],
-): Promise<boolean> => {
-  const uid = config.CLASHOFCODE_KEY.substring(0, 7);
-  const token = config.CLASHOFCODE_KEY;
-  console.log(language);
-
-  try {
-    const session = await fetch(
-      "https://www.codingame.com/services/ClashOfCode/startClashTestSession",
-      {
-        "headers": {
-          "Content-Type": "application/json;charset=utf-8",
-          "Cookie": `rememberMe=${token}`,
-        },
-        "body": JSON.stringify([uid, clashId]),
-        "method": "POST",
-      },
-    );
-    const gameHandle = await (await session.json()).handle;
-    if (!gameHandle) throw Error("No game handle.");
-
-    const res = await fetch(
-      "https://www.codingame.com/services/TestSession/submit",
-      {
-        "headers": {
-          "Content-Type": "application/json;charset=utf-8",
-          "Cookie": `rememberMe=${token}`,
-          "Referer": `https://www.codingame.com/ide/${gameHandle}`,
-        },
-        "body": JSON.stringify([gameHandle, {
-          "code": "/* i'm not participating :) */",
-          "programmingLanguageId": language,
-        }, null]),
-        "method": "POST",
-      },
-    );
-
-    if (!res.ok || res.status !== 200) throw Error("not right status code :(");
-  } catch (e) {
-    console.error("Coc:", "Something went wrong with submitting code: ", e);
-    return false;
-  }
-
-  return true;
-};
-
 const command: SlashCommand = {
   inDm: true,
   permissions: "everywhere",
@@ -176,19 +127,41 @@ const command: SlashCommand = {
         .setRequired(true)
         .setAutocomplete(true)
     )
-    .addStringOption((opts) => opts
-      .setName("gamemodes")
-      .setDescription("Kind of games to play.")
-      .setRequired(true)
-      .setChoices(getAllGameModeCombinations().flatMap(v => ({name: v.map(v => v.toLowerCase()).join(" & "), value: JSON.stringify(v)})))
+    .addStringOption((opts) =>
+      opts
+        .setName("gamemodes")
+        .setDescription("Kind of games to play.")
+        .setRequired(true)
+        .setChoices(
+          getAllGameModeCombinations().flatMap((v) => ({
+            name: v.map((v) => v.toLowerCase()).join(" & "),
+            value: JSON.stringify(v),
+          })),
+        )
     ),
 
   execute: async (interaction) => {
-    const languages = interaction.options.getString("languages", true)
-    const modes = interaction.options.getString("gamemodes", true)
+    const languages = interaction.options.getString("languages", true).split(
+      ",",
+    ).map(firstUpper);
+    const modes = interaction.options.getString("gamemodes", true);
 
+    const validateLang = validateLanguagesInput(languages);
+    if (validateLang) {
+      interaction.reply({
+        embeds: [embed({
+          title: "Clash of code ERROR",
+          message: "Please provide a valid language.",
+          kindOfEmbed: "error",
+        })],
+      });
+      return;
+    }
 
-    const clash = await createPrivateClash(languages, []);
+    const clash = await createPrivateClash(
+      languages.includes("All") ? [] : languages,
+      JSON.parse(modes),
+    );
     if (!clash) {
       await interaction.reply({
         content: `Something went wrong with creating a clash.`,
@@ -221,20 +194,24 @@ const command: SlashCommand = {
     const focusedOption = interaction.options.getFocused(true);
 
     const input = focusedOption.value.split(",");
-    const found = validateLanguagesInput(input)
+    const found = validateLanguagesInput(input.map(firstUpper));
 
     if (found) {
-      interaction.respond([{
-	name: `${found} is not a valid language.`,
-	value: "",
+      await interaction.respond([{
+        name: `${found} is not a valid language.`,
+        value: "",
       }]);
       return;
     }
 
-    interaction.respond(
-      (languages.filter((v) => v.startsWith(input[input.length - 1]))).slice(0, 25).map(
-	(v) => ({ name: v, value: v }),
-      ),
+    await interaction.respond(
+      languages.map(v=> v.toLowerCase()).filter((v) => v.startsWith(input[input.length - 1])).slice(
+        0,
+        25,
+      ).map((v) => {
+        v = input.length > 1 ? [...input.slice(0, -1), v].join(",") : v;
+        return { name: v, value: v };
+      }),
     );
   },
 
@@ -252,15 +229,6 @@ const command: SlashCommand = {
         ephemeral: true,
       });
       return;
-    } else if (command === "submit") {
-      const language = id[3] as Languages[number];
-      const result = await submitCode(clashId, language);
-      await interaction.reply({
-        content: result
-          ? "Submitted code."
-          : "Something went wrong with submitting code.",
-        ephemeral: true,
-      });
     }
   },
 };
