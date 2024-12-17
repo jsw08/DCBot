@@ -8,6 +8,8 @@ import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
 
+const firstUpper = (s: string) => s.slice(0, 1).toUpperCase() + s.slice(1);
+
 const languages = [
   "All",
   "Bash",
@@ -40,14 +42,20 @@ const languages = [
 ];
 type Languages = (typeof languages[number])[];
 
-const validateLanguagesInput = (input: string[]): undefined | string => {
-  const found = input.slice(0, -1).find((v) => input.includes(v));
-
-  if (found) {
-    return found;
-  }
-};
-const firstUpper = (s: string) => s.slice(0, 1).toUpperCase() + s.slice(1);
+const encodeString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const encodeLang = (langs: Languages): string =>
+  langs.map((v) => encodeString.at(languages.indexOf(v))).join();
+const decodeLang = (str: string): Languages =>
+  [...str].map((v) => {
+    const index = encodeString.indexOf(v);
+    if (!index || index > languages.length - 1) {
+      console.error("COC: Error while decoding. Invalid char.")
+      return languages[0]
+    }
+    return languages[index];
+  });
+const validateLanguagesInput = (input: string[]): string | undefined => input.slice(0, -1).find((v) => !languages.includes(firstUpper(v)));
+   
 
 const gameModes = ["FASTEST", "SHORTEST", "REVERSE"];
 type GameModes = (typeof gameModes[number])[];
@@ -141,11 +149,12 @@ const command: SlashCommand = {
     ),
 
   execute: async (interaction) => {
-    const languages = interaction.options.getString("languages", true).split(
-      ",",
-    ).map(firstUpper);
+    let languages = [...new Set(interaction.options.getString("languages", true)
+      .split(",")
+      .map(firstUpper))];
     const modes = interaction.options.getString("gamemodes", true);
 
+    if (languages.includes("All")) languages = ["All"]
     const validateLang = validateLanguagesInput(languages);
     if (validateLang) {
       interaction.reply({
@@ -174,11 +183,9 @@ const command: SlashCommand = {
       .setCustomId(`${command.command.name}_${clash}_start`)
       .setLabel("Start game")
       .setStyle(ButtonStyle.Secondary);
-    const submitButton = new ButtonBuilder()
+    const restartButton = new ButtonBuilder()
       .setCustomId(
-        `${command.command.name}_${clash}_submit_${
-          languages.length === 0 ? "C++" : languages[0]
-        }`,
+        `${command.command.name}_${clash}_restart_${encodeLang(languages)}`,
       )
       .setLabel("Start game")
       .setStyle(ButtonStyle.Secondary);
@@ -186,7 +193,7 @@ const command: SlashCommand = {
     await interaction.reply({
       content: `https://www.codingame.com/clashofcode/clash/${clash}`,
       components: [new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(startButton, submitButton)],
+        .addComponents(startButton)],
     });
   },
 
@@ -194,6 +201,7 @@ const command: SlashCommand = {
     const focusedOption = interaction.options.getFocused(true);
 
     const input = focusedOption.value.split(",");
+    const cInput = input[input.length - 1];
     const found = validateLanguagesInput(input.map(firstUpper));
 
     if (found) {
@@ -204,12 +212,14 @@ const command: SlashCommand = {
       return;
     }
 
+    const resLangs = languages
+      .map((v) => v.toLowerCase())
+      .filter(v => !input.includes(v))
+      .filter((v) => cInput === "" || v.startsWith(cInput))
+      .slice(-25);
     await interaction.respond(
-      languages.map(v=> v.toLowerCase()).filter((v) => v.startsWith(input[input.length - 1])).slice(
-        0,
-        25,
-      ).map((v) => {
-        v = input.length > 1 ? [...input.slice(0, -1), v].join(",") : v;
+      resLangs.map((v) => {
+        v = [...input.slice(0, -1), v].join(",");
         return { name: v, value: v };
       }),
     );
@@ -220,16 +230,22 @@ const command: SlashCommand = {
     const clashId = id[1];
     const command = id[2];
 
-    if (command === "start") {
-      const result = await startClashByHandle(clashId);
-      await interaction.reply({
-        content: result
-          ? "Start signal sent."
-          : "Something went wrong with sending the start signal.",
-        ephemeral: true,
-      });
-      return;
+    switch (command) {
+      case "start": {
+	const result = await startClashByHandle(clashId);
+	await interaction.reply({
+	  content: result
+	    ? "Start signal sent."
+	    : "Something went wrong with sending the start signal.",
+	  ephemeral: true,
+	});
+	break
+      }
+      case "restart": {
+	console.log(id[3], decodeLang(id[3]))
+      }
     }
+
   },
 };
 
