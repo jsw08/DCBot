@@ -131,6 +131,7 @@ const startClashByHandle = async (clash: string) => {
 };
 
 const generateTable = (columns: number, items: string[]): string => {
+  columns = items.length > columns ? columns : items.length
   const columnWidths: number[] = items.reduce(
     (reduced, current, currentIndex) => {
       const columnIndex = currentIndex % columns;
