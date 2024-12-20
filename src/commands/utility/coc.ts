@@ -187,8 +187,7 @@ const clashMessage = async (
 	title: "Clash of Code - Ratelimited",
 	message: "Hi, there's a rate-limit of one minute on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
 	kindOfEmbed: "error"
-      }), false)],
-      ephemeral: true
+      }), false)]
     };
   }
   rateLimits[channelID] = setTimeout(
@@ -238,7 +237,7 @@ const clashMessage = async (
 	  <@${ownerID}> is the current host, meaning only he may start the game. Anyone can open a new game though.
 
 	  **Allowed programming languages**
-	  ${bt + generateTable(3, langs) + bt} 
+	  ${bt + generateTable(MAX_COLUMNS, langs) + bt} 
 	  `,
       }), true)
     ],
