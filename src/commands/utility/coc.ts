@@ -359,9 +359,6 @@ const command: SlashCommand = {
 	      kindOfEmbed: "error"
 	    }), result),
 	  ],
-          content: result
-            ? "Start signal sent."
-            : "Something went wrong with sending the start signal.",
           ephemeral: true,
         });
         break;
