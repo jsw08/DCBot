@@ -7,10 +7,12 @@ import {
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
 import { InteractionReplyOptions } from "discord.js";
+import { embed } from "$utils/embed.ts";
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 
-let rateLimits: {[x: string]: number} = {};
+const rateLimits: { [x: string]: number } = {};
 
-const languages = [
+const LANGUAGES = [
   "All",
   "Bash",
   "C",
@@ -40,30 +42,35 @@ const languages = [
   "TypeScript",
   "VB.NET",
 ];
-const longestLanguage = (v => v[v.length -1])(languages.sort((a,b) => a.length - b.length))
-const lowercaseLanguages = languages.map((v) => v.toLowerCase());
-type Languages = (typeof languages[number])[];
+const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(LANGUAGES.toSorted((a,b) => b.length - a.length));
+const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
+type Languages = (typeof LANGUAGES[number])[];
 
-const encodeString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const encodeSubset = (subset: string[], base: string[]): string =>
-  subset.map((v) => encodeString.at(base.indexOf(v))).join("");
+  subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
 const decodeSubset = (encodedString: string, base: string[]): Languages =>
   [...encodedString].map((encodedChar) => {
-    const index = encodeString.indexOf(encodedChar);
+    const index = ENCODE_STRING.indexOf(encodedChar);
     if (index === -1 || index > base.length - 1) {
-      console.error("COC: Error while decoding. Invalid char.", encodedChar, index, base);
-      return base[0];
+      console.error(
+        "COC: Error while decoding. Invalid char.",
+        encodedChar,
+        index,
+        base,
+      );
+      return base[0]; // COPING 101
     }
     return base[index];
   });
 
-const gameModes = ["FASTEST", "SHORTEST", "REVERSE"];
-type GameModes = (typeof gameModes[number])[];
+const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
+type GameModes = (typeof GAMEMODES[number])[];
 const allGameModeCombinations: GameModes[] = [
-  ...Array(1 << gameModes.length).keys(),
+  ...Array(1 << GAMEMODES.length).keys(),
 ]
   .slice(1)
-  .map((i) => gameModes.filter((_, j) => i & (1 << j)));
+  .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
 const createPrivateClash = async (
   langs: Languages,
@@ -122,42 +129,73 @@ const startClashByHandle = async (clash: string) => {
 
 const clashMessage = async (
   channelID: string,
+  ownerID: string,
   langs: Languages,
   modes: GameModes,
 ): Promise<InteractionReplyOptions> => {
-  if (rateLimits[channelID] !== undefined) return {
-    content: "There's a ratelimit of 1min :)"
+  if (rateLimits[channelID] !== undefined) {
+    return {
+      content: "There's a ratelimit of 1min :)",
+    };
   }
-  rateLimits[channelID] = setTimeout(() => delete rateLimits[channelID], 60_000)
-  
+  rateLimits[channelID] = setTimeout(
+    () => delete rateLimits[channelID],
+    60_000,
+  );
+
   const clash = await createPrivateClash(
     langs,
     modes,
   );
   if (!clash) {
     return {
-      content: `Something went wrong with creating a clash.`,
+      embeds: [embed({
+        title: "Clash of Code - ERROR",
+        message: "Something went wrong with creating the clash.",
+        kindOfEmbed: "error",
+      })],
       ephemeral: true,
     };
   }
 
+  const urlButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Link)
+    .setLabel("Open")
+    .setURL(`https://www.codingame.com/clashofcode/clash/${clash}`);
   const startButton = new ButtonBuilder()
-    .setCustomId(`${command.command.name}_start_${clash}`)
-    .setLabel("Start game")
-    .setStyle(ButtonStyle.Secondary);
-  const restartButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Success)
+    .setLabel("Start")
+    .setCustomId(`${command.command.name}_start_${ownerID}_${clash}`);
+  const newButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Primary)
+    .setLabel("New")
     .setCustomId(
-      `${command.command.name}_restart_${encodeSubset(modes, gameModes)}_${
-        encodeSubset(langs, languages)
+      `${command.command.name}_restart_${encodeSubset(modes, GAMEMODES)}_${
+        encodeSubset(langs, LANGUAGES)
       }`,
-    )
-    .setLabel("Start game")
-    .setStyle(ButtonStyle.Secondary);
+    );
 
   return {
-    content: `https://www.codingame.com/clashofcode/clash/${clash}`,
+    embeds: [
+      embed({
+        kindOfEmbed: "normal",
+        title: `Clash of Code - ${modes.join(" & ")}`,
+        message: `
+	  <@${ownerID}> is the current host, meaning only he may start the game. Anyone can open a new game though.
+
+	  ### Allowed programming languages
+	  ${["", ...langs].join("\n- ")}
+	  `,
+      })
+        .setAuthor({
+          iconURL:
+            "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
+          url: "https://www.codingame.com",
+          name: "CodinGame",
+        }),
+    ],
     components: [new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(startButton, restartButton)],
+      .addComponents(urlButton, startButton, newButton)],
   };
 };
 
@@ -193,14 +231,21 @@ const command: SlashCommand = {
     let langInput = interaction.options.getString("languages", true)
       .split(",")
       .reduce<Languages>((reduced, current) => {
-        const index = lowercaseLanguages.indexOf(current.toLowerCase());
-        if (index !== -1) reduced.push(languages[index]);
+        const index = LOWERCASE_LANGUAGES.indexOf(current.toLowerCase());
+        if (index !== -1) reduced.push(LANGUAGES[index]);
 
         return reduced;
       }, []);
     if (langInput.includes("All")) langInput = ["All"];
 
-    interaction.reply(await clashMessage(interaction.channelId, langInput, modes.split(",")));
+    interaction.reply(
+      await clashMessage(
+        interaction.channelId,
+        interaction.user.id,
+        langInput,
+        modes.split(","),
+      ),
+    );
   },
 
   autocomplete: async (interaction) => {
@@ -208,7 +253,9 @@ const command: SlashCommand = {
 
     const input = focusedOption.value.split(",");
     const cInput = input[input.length - 1];
-    const found = input.slice(0, -1).find((v) => !lowercaseLanguages.some((l) => l === v));
+    const found = input.slice(0, -1).find((v) =>
+      !LOWERCASE_LANGUAGES.some((l) => l === v)
+    );
 
     if (found) {
       await interaction.respond([{
@@ -218,7 +265,7 @@ const command: SlashCommand = {
       return;
     }
 
-    const resLangs = languages
+    const resLangs = LANGUAGES
       .reduce<string[]>((reduce, current) => {
         current = current.toLowerCase();
 
@@ -230,16 +277,18 @@ const command: SlashCommand = {
         return reduce;
       }, [])
       .slice(-25);
+
     const autocompleteRes = resLangs.map((v) => {
-        v = [...input.slice(0, -1), v].join(",");
-        return { name: v, value: v };
-    })
-    console.log(autocompleteRes[9], )
+      v = [...input.slice(0, -1), v].join(",");
+      return { name: v, value: v };
+    });
     await interaction.respond(
-      `${input.join(",")},${longestLanguage}`.length < 100 ? autocompleteRes : [{
-	name: "You've selected too many options for discord to handle.",
-	value: ""
-      }]
+      `${input.join(",")},${LONGEST_LANGUAGES}`.length < 100
+        ? autocompleteRes
+        : [{
+          name: "You've selected too many options for discord to handle.",
+          value: "",
+        }],
     );
   },
 
@@ -249,7 +298,12 @@ const command: SlashCommand = {
 
     switch (command) {
       case "start": {
-        const result = await startClashByHandle(id[2]);
+        if (id[2] !== interaction.user.id) {
+          interaction.reply({ embeds: [accessDeniedEmbed], ephemeral: true });
+          return;
+        }
+
+        const result = await startClashByHandle(id[3]);
         await interaction.reply({
           content: result
             ? "Start signal sent."
@@ -259,12 +313,12 @@ const command: SlashCommand = {
         break;
       }
       case "restart": {
-        console.log(this);
         await interaction.reply(
           await clashMessage(
-	    interaction.channelId,
-            decodeSubset(id[3], languages),
-            decodeSubset(id[2], gameModes),
+            interaction.channelId,
+            interaction.user.id,
+            decodeSubset(id[3], LANGUAGES),
+            decodeSubset(id[2], GAMEMODES),
           ),
         );
         break;
