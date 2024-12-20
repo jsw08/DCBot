@@ -43,7 +43,7 @@ const LANGUAGES = [
   "VB.NET",
 ];
 const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(
-  LANGUAGES.toSorted((a, b) => b.length - a.length),
+  LANGUAGES.toSorted((a, b) => a.length - b.length),
 );
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
 type Languages = (typeof LANGUAGES[number])[];
@@ -309,7 +309,7 @@ const command: SlashCommand = {
           !input.includes(current) &&
           (cInput === "" || current.startsWith(cInput))
         ) reduce.push(current);
-        //console.log(current, input, input.includes(current), (cInput === "" || current.startsWith(cInput)))
+
         return reduce;
       }, [])
       .slice(-25);
@@ -319,7 +319,7 @@ const command: SlashCommand = {
       return { name: v, value: v };
     });
     await interaction.respond(
-      `${input.join(",")},${LONGEST_LANGUAGES}`.length < 100
+      `${input.join(",")},${LONGEST_LANGUAGES}`.length <= 100
         ? autocompleteRes
         : [{
           name: "You've selected too many options for discord to handle.",
