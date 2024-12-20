@@ -10,8 +10,7 @@ import { InteractionReplyOptions } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 
-const rateLimits: { [x: string]: number } = {};
-
+const MAX_COLUMNS = 4;
 const LANGUAGES = [
   "All",
   "Bash",
@@ -46,9 +45,19 @@ const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(
   LANGUAGES.toSorted((a, b) => a.length - b.length),
 );
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
+const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
+const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
+  ...Array(1 << GAMEMODES.length).keys(),
+]
+  .slice(1)
+  .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
+
+type GameModes = (typeof GAMEMODES[number])[];
 type Languages = (typeof LANGUAGES[number])[];
 
-const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const rateLimits: { [x: string]: number } = {};
+
 const encodeSubset = (subset: string[], base: string[]): string =>
   subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
 const decodeSubset = (encodedString: string, base: string[]): Languages =>
@@ -65,14 +74,6 @@ const decodeSubset = (encodedString: string, base: string[]): Languages =>
     }
     return base[index];
   });
-
-const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
-type GameModes = (typeof GAMEMODES[number])[];
-const allGameModeCombinations: GameModes[] = [
-  ...Array(1 << GAMEMODES.length).keys(),
-]
-  .slice(1)
-  .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
 const createPrivateClash = async (
   langs: Languages,
@@ -255,7 +256,7 @@ const command: SlashCommand = {
         .setDescription("Kind of games to play.")
         .setRequired(true)
         .setChoices(
-          allGameModeCombinations.flatMap((v) => ({
+          ALL_GAMEMODE_COMBINATIONS.flatMap((v) => ({
             name: v.map((v) => v.toLowerCase()).join(" & "),
             value: v.join(","),
           })),
