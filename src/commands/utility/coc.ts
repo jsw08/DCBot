@@ -42,7 +42,9 @@ const LANGUAGES = [
   "TypeScript",
   "VB.NET",
 ];
-const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(LANGUAGES.toSorted((a,b) => b.length - a.length));
+const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(
+  LANGUAGES.toSorted((a, b) => b.length - a.length),
+);
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
 type Languages = (typeof LANGUAGES[number])[];
 
@@ -127,6 +129,38 @@ const startClashByHandle = async (clash: string) => {
   return true;
 };
 
+const generateTable = (columns: number, items: string[]): string => {
+  const columnWidths: number[] = items.reduce(
+    (reduced, current, currentIndex) => {
+      const columnIndex = currentIndex % columns;
+      reduced[columnIndex] = Math.max(reduced[columnIndex], current.length);
+      return reduced;
+    },
+    new Array(columns).fill(0),
+  );
+
+  const rows: string[] = items.reduce<string[][]>(
+    (reduced, current, currentIndex) => {
+      if (currentIndex % columns === 0) reduced.push([]);
+      reduced[reduced.length - 1].push(current);
+      return reduced;
+    },
+    [],
+  ).map((item) => {
+    const paddedRow = [...item, ...Array(columns - item.length).fill('')];
+    return `║ ${paddedRow.map((value, index) => value.padEnd(columnWidths[index], " ")).join(" ║ ")} ║`;
+  });
+
+  const headFootSeparator = (begin: string, separate: string, end: string) =>
+    begin + columnWidths.map((width) => "═".repeat(width + 2)).join(separate) + end;
+
+  return [
+    headFootSeparator("╔", "╦", "╗"),
+    ...rows,
+    headFootSeparator("╚", "╩", "╝"),
+  ].join("\n");
+};
+
 const clashMessage = async (
   channelID: string,
   ownerID: string,
@@ -175,6 +209,7 @@ const clashMessage = async (
       }`,
     );
 
+  const bt = "```"
   return {
     embeds: [
       embed({
@@ -183,8 +218,8 @@ const clashMessage = async (
         message: `
 	  <@${ownerID}> is the current host, meaning only he may start the game. Anyone can open a new game though.
 
-	  ### Allowed programming languages
-	  ${["", ...langs].join("\n- ")}
+	  **Allowed programming languages**
+	  ${bt + generateTable(3, langs) + bt} 
 	  `,
       })
         .setAuthor({
@@ -192,7 +227,8 @@ const clashMessage = async (
             "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
           url: "https://www.codingame.com",
           name: "CodinGame",
-        }),
+        })
+        .setColor("#f2bb13"),
     ],
     components: [new ActionRowBuilder<ButtonBuilder>()
       .addComponents(urlButton, startButton, newButton)],
