@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
   SlashCommandBuilder,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
@@ -163,6 +164,17 @@ const generateTable = (columns: number, items: string[]): string => {
   ].join("\n");
 };
 
+const setCodinGameStyles = (emb: EmbedBuilder, color?: boolean): EmbedBuilder => {
+  emb.setAuthor({
+    iconURL:
+      "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
+    url: "https://www.codingame.com",
+    name: "CodinGame",
+  })
+  if (color) emb.setColor("#f2bb13")
+  return emb
+}
+
 const clashMessage = async (
   channelID: string,
   ownerID: string,
@@ -171,7 +183,12 @@ const clashMessage = async (
 ): Promise<InteractionReplyOptions> => {
   if (rateLimits[channelID] !== undefined) {
     return {
-      content: "There's a ratelimit of 1min :)",
+      embeds: [setCodinGameStyles(embed({
+	title: "Clash of Code - Ratelimited",
+	message: "Hi, there's a rate-limit of one minute on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+	kindOfEmbed: "error"
+      }), false)],
+      ephemeral: true
     };
   }
   rateLimits[channelID] = setTimeout(
@@ -185,11 +202,11 @@ const clashMessage = async (
   );
   if (!clash) {
     return {
-      embeds: [embed({
+      embeds: [setCodinGameStyles(embed({
         title: "Clash of Code - ERROR",
         message: "Something went wrong with creating the clash.",
         kindOfEmbed: "error",
-      })],
+      }))],
       ephemeral: true,
     };
   }
@@ -214,7 +231,7 @@ const clashMessage = async (
   const bt = "```"
   return {
     embeds: [
-      embed({
+      setCodinGameStyles(embed({
         kindOfEmbed: "normal",
         title: `Clash of Code - ${modes.join(" & ")}`,
         message: `
@@ -223,14 +240,7 @@ const clashMessage = async (
 	  **Allowed programming languages**
 	  ${bt + generateTable(3, langs) + bt} 
 	  `,
-      })
-        .setAuthor({
-          iconURL:
-            "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
-          url: "https://www.codingame.com",
-          name: "CodinGame",
-        })
-        .setColor("#f2bb13"),
+      }), true)
     ],
     components: [new ActionRowBuilder<ButtonBuilder>()
       .addComponents(urlButton, startButton, newButton)],
@@ -337,12 +347,19 @@ const command: SlashCommand = {
     switch (command) {
       case "start": {
         if (id[2] !== interaction.user.id) {
-          interaction.reply({ embeds: [accessDeniedEmbed], ephemeral: true });
+          interaction.reply({ embeds: [setCodinGameStyles(accessDeniedEmbed, false)], ephemeral: true });
           return;
         }
 
         const result = await startClashByHandle(id[3]);
         await interaction.reply({
+	  embeds: [
+	    setCodinGameStyles(embed({
+	      title: "Clash of Code",
+	      message: result ? "Start signal sent!" : "Something went wrong while sending the start signal, did the game already start?",
+	      kindOfEmbed: "error"
+	    }), result),
+	  ],
           content: result
             ? "Start signal sent."
             : "Something went wrong with sending the start signal.",
