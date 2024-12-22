@@ -140,7 +140,7 @@ const command: SlashCommand = {
           embeds: [embed({
             title: "Reminder - confirmation",
             message:
-              `Your reminder has been successfully set! It will trigger in approximately ${
+              `Your reminder has been successfully set! It will trigger ${
                 dcTimestamp(date.getTime(), "R")
               }.`,
             kindOfEmbed: "success",
