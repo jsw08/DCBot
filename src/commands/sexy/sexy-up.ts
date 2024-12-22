@@ -167,21 +167,36 @@ const command: SlashCommand = {
       return;
     }
 
+    await interaction.reply({
+      embeds: [
+        embed({
+          title: "Sexy upload - halfway there",
+          message:
+            `The image was uploaded sucessfully to discord. Currently downloading to the server.`,
+          kindOfEmbed: "warning",
+        }),
+      ],
+      ephemeral: true,
+    });
+
     const file = await Deno.create(
-      join(nickDir, `${filename}.${filetype}`),
+      join(nickDir, `${filename}.${filetype}.TMP`),
     );
     await resp.body.pipeTo(file.writable);
+    await Deno.rename(
+      join(nickDir, `${filename}.${filetype}.TMP`),
+      join(nickDir, `${filename}.${filetype}`),
+    )
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [
         embed({
           title: "Sexy upload - completed",
           message:
-            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${filetype}'`,
+            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${filetype}'. It is currently being downloaded to the server, it might take a few seconds before it is available in sexy carousel.`,
           kindOfEmbed: "success",
         }),
       ],
-      ephemeral: true,
     });
 
     for (const channel of getSexyChannels()) {
