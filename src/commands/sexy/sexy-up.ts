@@ -1,5 +1,10 @@
 import { SlashCommand } from "$/commandLoader.ts";
-import { AutocompleteInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  AutocompleteInteraction,
+  Channel,
+  SlashCommandBuilder,
+  TextChannel,
+} from "discord.js";
 import { embed } from "$utils/embed.ts";
 import {
   dir,
@@ -7,6 +12,51 @@ import {
   usernameAutocomplete,
 } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
+import { config } from "$utils/config.ts";
+import { client } from "$/main.ts";
+
+const getSexyChannels = (): TextChannel[] => {
+  const channels: TextChannel[] = [];
+  if (!client.isReady()) {
+    console.error("SexyUP: Client isn't ready yet. Unable to get channels.");
+    return [];
+  }
+
+  for (const i of config.SEXY_LOG_CHANNELS.split(",")) {
+    const channel: Channel | null | undefined = client.channels.cache.get(i);
+
+    if (!channel || channel === null) {
+      console.error("SexyUP: Channel wasn't found.", i);
+      continue;
+    }
+    if (!(channel instanceof TextChannel)) {
+      console.error("SexyUP: This isn't a text channel", i);
+      continue;
+    }
+    if (!client.user) {
+      console.error(
+        "SexyUP: Something went terribly wrong, the bot user doesn't exist? Very weird.",
+      );
+      continue;
+    }
+
+    const permissions = channel.permissionsFor(client.user);
+    if (
+      !permissions || !permissions.has("ViewChannel") ||
+      !permissions.has("SendMessages")
+    ) {
+      console.error(
+        "SexyUP: No permissions to send messages in this channel. ",
+        i,
+        permissions?.toArray(),
+      );
+      continue;
+    }
+
+    channels.push(channel);
+  }
+  return channels;
+};
 
 const checkFilename = (str: string): boolean => {
   const invalidCharsPattern = /[<>:"/\\|?*]/;
@@ -59,7 +109,7 @@ const command: SlashCommand = {
     ) {
       await interaction.reply({
         embeds: [embed({
-          title: "Error!",
+          title: "Sexy upload - Error!",
           message: "Please provide valid parameters.",
           kindOfEmbed: "error",
         })],
@@ -82,12 +132,13 @@ const command: SlashCommand = {
       createDir = true;
     }
 
+    const filetype = ((v) => v[v.length - 1])(image.name.split("."));
     if (!createDir) {
       try {
-        await Deno.lstat(join(nickDir, filename));
+        await Deno.lstat(join(nickDir, `${filename}.${filetype}`));
         await interaction.reply({
           embeds: [embed({
-            title: "Error!",
+            title: "Sexy upload - Error!",
             message:
               "There already exists a file with this name on the server. Please choose a different name.",
             kindOfEmbed: "error",
@@ -101,11 +152,12 @@ const command: SlashCommand = {
     } else {
       await Deno.mkdir(nickDir);
     }
+
     const resp = await fetch(image.url);
     if (!resp.ok || !resp.body || resp.status === 404) {
       await interaction.reply({
         embeds: [embed({
-          title: "Error!",
+          title: "Sexy upload - Error!",
           message:
             "Something went wrong while downloading the file to the server.",
           kindOfEmbed: "error",
@@ -115,24 +167,38 @@ const command: SlashCommand = {
       return;
     }
 
-    const filetype = image.name.split(".");
     const file = await Deno.create(
-      join(nickDir, `${filename}.${filetype[filetype.length - 1]}`),
+      join(nickDir, `${filename}.${filetype}`),
     );
     resp.body.pipeTo(file.writable);
 
     await interaction.reply({
       embeds: [
         embed({
+          title: "Sexy upload - completed",
           message:
-            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${
-              filetype[filetype.length - 1]
-            }'`,
+            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${filetype}'`,
           kindOfEmbed: "success",
         }),
       ],
       ephemeral: true,
     });
+
+    for (const channel of getSexyChannels()) {
+      channel.send({
+        embeds: [
+          embed({
+            title: `${nickname}`,
+            message: `${filename}`,
+	    kindOfEmbed: "success"
+          })
+            .setImage(
+              new URL(`/${nickname}/${filename}.${filetype}`, config.SEXY_URL)
+                .toString(),
+            ),
+        ],
+      });
+    }
   },
 
   autocomplete: async (interaction: AutocompleteInteraction) => {
