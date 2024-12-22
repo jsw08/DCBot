@@ -99,12 +99,6 @@ const imagesPageProps = (
       .setURL(config.SEXY_TITLE_URL)
       .setAuthor({ name: "Images may take a moment to load." })
   );
-  images[currentPage].map((v) =>
-    console.log(
-      new URL(`/${nickname}/${v}`, config.SEXY_URL)
-        .toString(),
-    )
-  );
   return {
     embeds: embeds.length ? embeds : [
       embed({

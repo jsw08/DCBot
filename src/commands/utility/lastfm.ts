@@ -90,12 +90,15 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
     return;
   }
 
-  db.exec(`
+  db.exec(
+    `
     INSERT INTO users (discord_id, lastfm_username) 
     VALUES (:discord_id, :lastfm_username) 
     ON CONFLICT(discord_id) 
     DO UPDATE SET lastfm_username = :lastfm_username;
-  `, {discord_id: interaction.user.id, lastfm_username: username})
+  `,
+    { discord_id: interaction.user.id, lastfm_username: username },
+  );
 
   interaction.reply({
     embeds: [embed({
@@ -108,13 +111,15 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   const username = interaction.options.getString("username") ?? (() => {
-    const result = db.prepare(`SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`).get<{lastfm_username: string}>({discord_id: interaction.user.id});
-    return (result ?? {lastfm_username: undefined}).lastfm_username;
+    const result = db.prepare(
+      `SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`,
+    ).get<{ lastfm_username: string }>({ discord_id: interaction.user.id });
+    return (result ?? { lastfm_username: undefined }).lastfm_username;
   })();
 
   if (!username) {
     await interaction.reply({ embeds: [noUserEmbed], ephemeral: true });
-    return
+    return;
   }
 
   const np: Track | boolean = await getCurrentlyPlayingTrack(

@@ -133,7 +133,7 @@ const command: SlashCommand = {
     try {
       await reply.awaitMessageComponent({
         componentType: ComponentType.Button,
-        time: 120_000
+        time: 120_000,
       });
       await reply.edit(
         {
@@ -150,16 +150,19 @@ const command: SlashCommand = {
       );
 
       db.exec(
-	"INSERT INTO reminders (discord_id, date, message) VALUES (:discord_id, :date, :message)",
-	{
-	  discord_id: interaction.user.id,
-	  date: date.getTime(),
-	  message: message,
-	},
-      )
+        "INSERT INTO reminders (discord_id, date, message) VALUES (:discord_id, :date, :message)",
+        {
+          discord_id: interaction.user.id,
+          date: date.getTime(),
+          message: message,
+        },
+      );
     } catch (e) {
-      if ((e as {code?: DiscordjsErrorCodes}).code !== DiscordjsErrorCodes.InteractionCollectorError) { 
-	throw e 
+      if (
+        (e as { code?: DiscordjsErrorCodes }).code !==
+          DiscordjsErrorCodes.InteractionCollectorError
+      ) {
+        throw e;
       }
 
       reply.edit({

@@ -69,7 +69,9 @@ const codeHandler = async (
         }\`\`\``,
         kindOfEmbed: "error",
       })],
-      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
+      components: [
+        delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
+      ],
     });
   }
 };
@@ -154,18 +156,18 @@ const command: SlashCommand = {
     const id = interaction.customId;
     const command = id.split("_")[1];
 
-    if (command !== "delete") return
+    if (command !== "delete") return;
     if (interaction.user.id !== id.split("_")[2]) {
       await interaction.reply({
-	embeds: [accessDeniedEmbed],
-	ephemeral: true
-      })
-      return
+        embeds: [accessDeniedEmbed],
+        ephemeral: true,
+      });
+      return;
     }
-    
+
     await interaction.deferUpdate();
-    await interaction.deleteReply()
-  }
+    await interaction.deleteReply();
+  },
 };
 
 export default command;
