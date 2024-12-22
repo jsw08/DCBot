@@ -173,7 +173,7 @@ const command: SlashCommand = {
           title: "Sexy upload - halfway there",
           message:
             `The image was uploaded sucessfully to discord. Currently downloading to the server.`,
-          kindOfEmbed: "success",
+          kindOfEmbed: "warning",
         }),
       ],
       ephemeral: true,
