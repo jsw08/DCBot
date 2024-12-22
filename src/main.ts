@@ -1,13 +1,9 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
-import "jsr:@std/dotenv/load";
 import commandLoader, { SlashCommand } from "$/commandLoader.ts";
 import eventLoader from "$/eventLoader.ts";
 import { config } from "$utils/config.ts";
 import { checkOrCreateDir } from "$utils/dir.ts";
 
-if (Object.values(config).some((v) => v === "")) {
-  throw Error("Please configure your dotenv correctly.");
-}
 checkOrCreateDir(config.DATA_DIR);
 
 export const client = new Client({
