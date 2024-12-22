@@ -24,6 +24,7 @@ export const config: Record<ConfigKeys, string> = configKeys.reduce<
   {} as Record<ConfigKeys, string>,
 );
 
-if (Object.values(config).some((v) => v === "")) {
-  throw Error("Please configure your dotenv correctly.");
+const notConfigged = Object.values(config).find((v) => v === "")
+if (notConfigged) {
+  throw Error(`Please configure your dotenv correctly. ${notConfigged}`);
 }
