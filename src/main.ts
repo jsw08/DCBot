@@ -15,7 +15,7 @@ export const client = new Client({
 });
 client.slashCommands = new Collection<string, SlashCommand>();
 
-commandLoader(client);
 eventLoader(client);
+commandLoader(client);
 
 client.login(config.DC_TOKEN);

@@ -13,7 +13,7 @@ const configKeys = [
   "SEXY_LOG_CHANNELS",
   "LASTFM_KEY",
   "REMINDER_TIMEOUT",
-  "CLASHOFCODE_KEY"
+  "CLASHOFCODE_KEY",
 ] as const;
 type ConfigKeys = typeof configKeys[number];
 
@@ -24,7 +24,7 @@ export const config: Record<ConfigKeys, string> = configKeys.reduce<
   {} as Record<ConfigKeys, string>,
 );
 
-const notConfigged = Object.values(config).find((v) => v === "")
+const notConfigged = Object.values(config).find((v) => v === "");
 if (notConfigged) {
   throw Error(`Please configure your dotenv correctly. ${notConfigged}`);
 }

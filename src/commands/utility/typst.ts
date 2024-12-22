@@ -20,7 +20,6 @@ import { config } from "$utils/config.ts";
 import { delButtonRow } from "$utils/deleteBtn.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 
-
 const TYPST_DIR = join(config.DATA_DIR, "typst");
 // Typst installed check
 let typstInstalled = true;
@@ -61,8 +60,8 @@ const typstRender = async (
   transparant: boolean,
   outputPath: string,
 ): Promise<void | TypstError> => {
-  const formatDate = (n: number): string => n.toString().padStart(2, '0');
-  const now = new Date()
+  const formatDate = (n: number): string => n.toString().padStart(2, "0");
+  const now = new Date();
 
   const typstCommand = new Deno.Command("typst", {
     args: [
@@ -72,7 +71,11 @@ const typstRender = async (
       "-f",
       "png",
       "--input",
-      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${formatDate(now.getDate())} ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${formatDate(now.getSeconds())}`}`,
+      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${
+        formatDate(now.getDate())
+      } ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${
+        formatDate(now.getSeconds())
+      }`}`,
       "-",
       outputPath,
     ],
@@ -141,7 +144,9 @@ const typstHandler = async (
         kindOfEmbed: "error",
         message: "Please provide valid typst code.",
       })],
-      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
+      components: [
+        delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
+      ],
     });
     return;
   }
@@ -157,7 +162,9 @@ const typstHandler = async (
             : "",
         kindOfEmbed: "error",
       })],
-      components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
+      components: [
+        delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
+      ],
     });
     return;
   }
@@ -247,7 +254,9 @@ const command: SlashCommand = {
             "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
           kindOfEmbed: "error",
         })],
-	components: [delButtonRow(`${command.command.name}_delete_${interaction.user.id}`)]
+        components: [
+          delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
+        ],
       });
       return;
     }
@@ -281,18 +290,18 @@ const command: SlashCommand = {
     const id = interaction.customId;
     const command = id.split("_")[1];
 
-    if (command !== "delete") return
+    if (command !== "delete") return;
     if (interaction.user.id !== id.split("_")[2]) {
       await interaction.reply({
-	embeds: [accessDeniedEmbed],
-	ephemeral: true
-      })
-      return
+        embeds: [accessDeniedEmbed],
+        ephemeral: true,
+      });
+      return;
     }
-    
+
     await interaction.deferUpdate();
-    await interaction.deleteReply()
-  }
+    await interaction.deleteReply();
+  },
 };
 
 export default command;

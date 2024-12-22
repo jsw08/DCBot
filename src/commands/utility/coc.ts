@@ -132,7 +132,7 @@ const startClashByHandle = async (clash: string) => {
 };
 
 const generateTable = (columns: number, items: string[]): string => {
-  columns = items.length > columns ? columns : items.length
+  columns = items.length > columns ? columns : items.length;
   const columnWidths: number[] = items.reduce(
     (reduced, current, currentIndex) => {
       const columnIndex = currentIndex % columns;
@@ -150,12 +150,16 @@ const generateTable = (columns: number, items: string[]): string => {
     },
     [],
   ).map((item) => {
-    const paddedRow = [...item, ...Array(columns - item.length).fill('')];
-    return `║ ${paddedRow.map((value, index) => value.padEnd(columnWidths[index], " ")).join(" ║ ")} ║`;
+    const paddedRow = [...item, ...Array(columns - item.length).fill("")];
+    return `║ ${
+      paddedRow.map((value, index) => value.padEnd(columnWidths[index], " "))
+        .join(" ║ ")
+    } ║`;
   });
 
   const headFootSeparator = (begin: string, separate: string, end: string) =>
-    begin + columnWidths.map((width) => "═".repeat(width + 2)).join(separate) + end;
+    begin + columnWidths.map((width) => "═".repeat(width + 2)).join(separate) +
+    end;
 
   return [
     headFootSeparator("╔", "╦", "╗"),
@@ -164,16 +168,19 @@ const generateTable = (columns: number, items: string[]): string => {
   ].join("\n");
 };
 
-const setCodinGameStyles = (emb: EmbedBuilder, color?: boolean): EmbedBuilder => {
+const setCodinGameStyles = (
+  emb: EmbedBuilder,
+  color?: boolean,
+): EmbedBuilder => {
   emb.setAuthor({
     iconURL:
       "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
     url: "https://www.codingame.com",
     name: "CodinGame",
-  })
-  if (color) emb.setColor("#f2bb13")
-  return emb
-}
+  });
+  if (color) emb.setColor("#f2bb13");
+  return emb;
+};
 
 const clashMessage = async (
   channelID: string,
@@ -183,11 +190,15 @@ const clashMessage = async (
 ): Promise<InteractionReplyOptions> => {
   if (rateLimits[channelID] !== undefined) {
     return {
-      embeds: [setCodinGameStyles(embed({
-	title: "Clash of Code - Ratelimited",
-	message: "Hi, there's a rate-limit of one minute on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
-	kindOfEmbed: "error"
-      }), false)]
+      embeds: [setCodinGameStyles(
+        embed({
+          title: "Clash of Code - Ratelimited",
+          message:
+            "Hi, there's a rate-limit of one minute on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+          kindOfEmbed: "error",
+        }),
+        false,
+      )],
     };
   }
   rateLimits[channelID] = setTimeout(
@@ -227,19 +238,22 @@ const clashMessage = async (
       }`,
     );
 
-  const bt = "```"
+  const bt = "```";
   return {
     embeds: [
-      setCodinGameStyles(embed({
-        kindOfEmbed: "normal",
-        title: `Clash of Code - ${modes.join(" & ")}`,
-        message: `
+      setCodinGameStyles(
+        embed({
+          kindOfEmbed: "normal",
+          title: `Clash of Code - ${modes.join(" & ")}`,
+          message: `
 	  <@${ownerID}> is the current host, meaning only he may start the game. Anyone can open a new game though.
 
 	  **Allowed programming languages**
 	  ${bt + generateTable(MAX_COLUMNS, langs) + bt} 
 	  `,
-      }), true)
+        }),
+        true,
+      ),
     ],
     components: [new ActionRowBuilder<ButtonBuilder>()
       .addComponents(urlButton, startButton, newButton)],
@@ -346,19 +360,27 @@ const command: SlashCommand = {
     switch (command) {
       case "start": {
         if (id[2] !== interaction.user.id) {
-          interaction.reply({ embeds: [setCodinGameStyles(accessDeniedEmbed, false)], ephemeral: true });
+          interaction.reply({
+            embeds: [setCodinGameStyles(accessDeniedEmbed, false)],
+            ephemeral: true,
+          });
           return;
         }
 
         const result = await startClashByHandle(id[3]);
         await interaction.reply({
-	  embeds: [
-	    setCodinGameStyles(embed({
-	      title: "Clash of Code",
-	      message: result ? "Start signal sent!" : "Something went wrong while sending the start signal, did the game already start?",
-	      kindOfEmbed: "error"
-	    }), result),
-	  ],
+          embeds: [
+            setCodinGameStyles(
+              embed({
+                title: "Clash of Code",
+                message: result
+                  ? "Start signal sent!"
+                  : "Something went wrong while sending the start signal, did the game already start?",
+                kindOfEmbed: "error",
+              }),
+              result,
+            ),
+          ],
           ephemeral: true,
         });
         break;
