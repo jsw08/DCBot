@@ -110,12 +110,19 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
   });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
+<<<<<<< Updated upstream
   const inputUsername = interaction.options.getString("username") 
   const username = inputUsername ?? (() => {
     const result = db.prepare(
       `SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`,
     ).get<{ lastfm_username: string }>({ discord_id: interaction.user.id });
     return (result ?? { lastfm_username: undefined }).lastfm_username;
+=======
+  const inputUsername = interaction.options.getString("username");
+  const username = inputUsername ?? (() => {
+    const result = db.prepare(`SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`).get<{lastfm_username: string}>({discord_id: interaction.user.id});
+    return (result ?? {lastfm_username: undefined}).lastfm_username;
+>>>>>>> Stashed changes
   })();
 
   if (!username) {
@@ -138,17 +145,25 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
       ],
     });
   } else {
+<<<<<<< Updated upstream
     const isCustom = interaction.options.getString("username") !== null;
     const lastfmImage = "https://www.last.fm/static/images/lastfm_avatar_applemusic.b06eb8ad89be.png"
     console.log(isCustom, interaction.options.getString("username"))
+=======
+    const lastFMPic = "https://www.last.fm/static/images/lastfm_avatar_applemusic.b06eb8ad89be.png";
+>>>>>>> Stashed changes
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
           .setAuthor({
             name: `• Now Playing`,
+<<<<<<< Updated upstream
             iconURL: isCustom ? 
 	      lastfmImage :
 	      interaction.user.avatarURL() ?? lastfmImage,
+=======
+            iconURL: inputUsername ? lastFMPic : interaction.user.avatarURL() ?? lastFMPic,
+>>>>>>> Stashed changes
           })
           .setTitle(np.title)
           .setURL(np.url)
