@@ -194,7 +194,7 @@ const clashMessage = async (
         embed({
           title: "Clash of Code - Ratelimited",
           message:
-            "Hi, there's a rate-limit of one minute on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+            "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
           kindOfEmbed: "error",
         }),
         false,
@@ -203,7 +203,7 @@ const clashMessage = async (
   }
   rateLimits[channelID] = setTimeout(
     () => delete rateLimits[channelID],
-    60_000,
+    15_000,
   );
 
   const clash = await createPrivateClash(
