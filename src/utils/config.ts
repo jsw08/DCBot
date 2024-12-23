@@ -17,14 +17,12 @@ const configKeys = [
 ] as const;
 type ConfigKeys = typeof configKeys[number];
 
-export const config: Record<ConfigKeys, string> = configKeys.reduce<
-  Record<ConfigKeys, string>
->(
-  (conf, key) => ({ ...conf, [key]: Deno.env.get(key) ?? "" }),
-  {} as Record<ConfigKeys, string>,
-);
+export const config: Record<ConfigKeys, string> = Object
+  .fromEntries(
+    configKeys.map((key) => {
+      const env = Deno.env.get(key)
+      if (!env) throw new Error(`Please configure your dotenv correctly. Missing: ${key}`);
 
-const notConfigged = Object.values(config).find((v) => v === "");
-if (notConfigged) {
-  throw Error(`Please configure your dotenv correctly. ${notConfigged}`);
-}
+      return [key, env]
+    }),
+  ) as Record<ConfigKeys, string>;
