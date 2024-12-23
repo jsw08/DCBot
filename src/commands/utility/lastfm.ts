@@ -110,7 +110,8 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
   });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
-  const username = interaction.options.getString("username") ?? (() => {
+  const inputUsername = interaction.options.getString("username") 
+  const username = inputUsername ?? (() => {
     const result = db.prepare(
       `SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`,
     ).get<{ lastfm_username: string }>({ discord_id: interaction.user.id });
@@ -137,12 +138,17 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
       ],
     });
   } else {
+    const isCustom = interaction.options.getString("username") !== null;
+    const lastfmImage = "https://www.last.fm/static/images/lastfm_avatar_applemusic.b06eb8ad89be.png"
+    console.log(isCustom, interaction.options.getString("username"))
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
           .setAuthor({
             name: `• Now Playing`,
-            iconURL: interaction.user.avatarURL() ?? "",
+            iconURL: isCustom ? 
+	      lastfmImage :
+	      interaction.user.avatarURL() ?? lastfmImage,
           })
           .setTitle(np.title)
           .setURL(np.url)
