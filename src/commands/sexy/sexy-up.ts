@@ -204,7 +204,7 @@ const command: SlashCommand = {
         embeds: [
           embed({
             title: `${nickname}`,
-            message: `${filename}`,
+            message: `${filename}\n${config.SEXY_LOG_ROLE.split(",").map((v) => `<@&${v}>`)}`,
 	    kindOfEmbed: "success"
           })
             .setImage(
