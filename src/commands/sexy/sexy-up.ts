@@ -14,6 +14,12 @@ import {
 import { join } from "@std/path/join";
 import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
+import { roleMention } from "discord.js";
+
+const ROLES_PING = config.SEXY_LOG_ROLES
+  .split(",")
+  .map(roleMention)
+  .join(", ")
 
 const getSexyChannels = (): TextChannel[] => {
   const channels: TextChannel[] = [];
@@ -201,6 +207,7 @@ const command: SlashCommand = {
 
     for (const channel of getSexyChannels()) {
       channel.send({
+	content: ROLES_PING,
         embeds: [
           embed({
             title: `${nickname}`,

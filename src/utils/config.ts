@@ -11,6 +11,7 @@ const configKeys = [
   "SEXY_URL",
   "SEXY_TITLE_URL",
   "SEXY_LOG_CHANNELS",
+  "SEXY_LOG_ROLES",
   "LASTFM_KEY",
   "REMINDER_TIMEOUT",
   "CLASHOFCODE_KEY",
