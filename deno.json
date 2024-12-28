@@ -16,6 +16,7 @@
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
     "chrono-node": "npm:chrono-node@^2.7.7",
     "discord.js": "npm:discord.js@^14.16.3",
-    "@discordjs/core": "npm:@discordjs/core@^2.0.0"
+    "@discordjs/core": "npm:@discordjs/core@^2.0.0",
+    "socket.io-client": "npm:socket.io-client@^4.8.1"
   }
 }
