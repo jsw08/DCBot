@@ -29,6 +29,7 @@
     "npm:@discordjs/core@2": "2.0.0",
     "npm:chrono-node@^2.7.7": "2.7.7",
     "npm:discord.js@^14.16.3": "14.16.3",
+    "npm:ms@^2.1.3": "2.1.3",
     "npm:socket.io-client@^4.8.1": "4.8.1"
   },
   "jsr": {
@@ -379,6 +380,7 @@
       "npm:@discordjs/core@2",
       "npm:chrono-node@^2.7.7",
       "npm:discord.js@^14.16.3",
+      "npm:ms@^2.1.3",
       "npm:socket.io-client@^4.8.1"
     ]
   }

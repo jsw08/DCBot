@@ -15,8 +15,10 @@ import { InteractionReplyOptions } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { io } from "socket.io-client";
+import ms from "ms";
 import { generateTable } from "$utils/ascii.ts";
 import { ChatInputCommandInteraction } from "discord.js";
+import { ChannelType } from "discord.js";
 
 // Constants
 const TOKEN = config.CLASHOFCODE_KEY;
@@ -98,8 +100,9 @@ type CommonPlayerClash = {
 type InGamePlayerClash = CommonPlayerClash & {
   completed: boolean;
   rank: number;
+  score: number;
   duration: number | 0;
-  criteria?: number;
+  criterion?: number;
 };
 
 type LobbyClash = CommonClash & {
@@ -158,7 +161,7 @@ type FetchClashAPI = CommonClashAPI & {
       status: "OWNER" | "STANDARD";
       rank: number;
       position: number;
-      criteria?: number;
+      criterion?: number;
     }
     & ({
       testSessionStatus: "COMPLETED";
@@ -221,6 +224,7 @@ const getClash = async (
   if (!req.ok || req.status !== 200) return undefined;
 
   const clashData: FetchClashAPI = await req.json();
+
   return {
     handle,
     langs: clashData.programmingLanguages,
@@ -234,9 +238,10 @@ const getClash = async (
         players: clashData.players.map((v) => ({
           nickname: v.codingamerNickname,
           rank: v.rank,
+          score: v.score,
           completed: v.testSessionStatus === "COMPLETED",
           duration: v.duration,
-          criteria: v.criteria,
+          criterion: v.criterion,
         })),
       }
       : {
@@ -337,6 +342,7 @@ const clashEventManager = async (
                 completed: false,
                 duration: 0,
                 rank: v.r,
+                score: v.d,
               })),
             }
             : {
@@ -416,6 +422,26 @@ const clashMessage = (
       }_${encodeSubset(game.langs, LANGUAGES)}`,
     );
 
+  const playerField = game.started
+    ? game.players
+      .sort((a, b) => a.rank - b.rank)
+      .map((p) => {
+        const status = p.completed
+          ? (p.score === 100
+            ? "<:helYea:261861228370984971>"
+            : p.score > 0
+            ? "<:helMeh:734272318536417280>"
+            : "<:helNa:261861228542951434>")
+          : "⌛";
+        const stats = p.completed
+          ? ` - ${ms(p.duration)} ` +
+            (p.criterion ? `(${p.criterion})` : "")
+          : "";
+        return `${p.rank}. ${status} ${p.nickname}${stats}`;
+      })
+      .join("\n") + " "
+    : game.players.map((p) => `- ${p.nickname}`).join("\n") + " ";
+
   return {
     embeds: [
       setCodinGameStyles(
@@ -428,7 +454,7 @@ const clashMessage = (
               userMention(ownerID)
             } is the host and can start the game. Others may start a new game.`
             : game.finished
-            ? `The game has finished. ${
+            ? `The game has finished.\n# ${
               game.players.find((v) => v.rank === 1)?.nickname
             } is the winner!`
             : `The game is currently running. Join now, before it ends!\n-# ${
@@ -445,20 +471,7 @@ const clashMessage = (
           },
           {
             name: "Players",
-            value:
-              (!game.started
-                ? game.players.map((v) => `- ${v.nickname}`)
-                : game.players.sort((a, b) => a.rank - b.rank).map((v) =>
-                  `${`${v.rank}. ${v.completed ? "✅" : "⌛"} ${v.nickname} ${
-                    v.completed
-                      ? `- ${v.duration / 1000} ${
-                        v.criteria !== undefined ? `- (${v.criteria})` : ""
-                      }`
-                      : ""
-                  }`}`
-                ))
-                .join("\n") +
-              " ",
+            value: playerField,
             inline: true,
           },
           {
@@ -540,16 +553,19 @@ const createClashManager = async (
     return;
   }
 
-  await interaction.reply(clashMessage({
-    handle: clash,
-    langs,
-    modes,
-    players: [{ nickname: "loading..." }],
-    started: false,
-  }, interaction.user.id));
+  const message = await interaction.reply({
+    ...clashMessage({
+      handle: clash,
+      langs,
+      modes,
+      players: [{ nickname: "loading..." }],
+      started: false,
+    }, interaction.user.id),
+    fetchReply: true,
+  });
 
   await clashEventManager(clash, async (data) => {
-    await interaction.editReply(clashMessage(data, interaction.user.id));
+    await message.edit(clashMessage(data, interaction.user.id));
   });
 };
 
