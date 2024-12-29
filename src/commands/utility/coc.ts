@@ -1,9 +1,13 @@
 import {
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonInteraction,
   ButtonStyle,
+  codeBlock,
   EmbedBuilder,
   SlashCommandBuilder,
+  time,
+  userMention,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
@@ -11,7 +15,10 @@ import { InteractionReplyOptions } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { io } from "socket.io-client";
+import { generateTable } from "$utils/ascii.ts";
+import { ChatInputCommandInteraction } from "discord.js";
 
+// Constants
 const TOKEN = config.CLASHOFCODE_KEY;
 const USERID = +TOKEN.slice(0, 7);
 
@@ -47,7 +54,7 @@ const LANGUAGES = [
   "VB.NET",
 ];
 const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(
-  LANGUAGES.toSorted((a, b) => a.length - b.length)
+  LANGUAGES.toSorted((a, b) => a.length - b.length),
 );
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
 const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
@@ -61,8 +68,7 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
 type GameModes = (typeof GAMEMODES)[number][];
 type Languages = (typeof LANGUAGES)[number][];
 
-const rateLimits: { [x: string]: number } = {};
-
+// Utils
 const encodeSubset = (subset: string[], base: string[]): string =>
   subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
 const decodeSubset = (encodedString: string, base: string[]): Languages =>
@@ -73,25 +79,32 @@ const decodeSubset = (encodedString: string, base: string[]): Languages =>
         "COC: Error while decoding. Invalid char.",
         encodedChar,
         index,
-        base
+        base,
       );
       return base[0]; // COPING 101
     }
     return base[index];
   });
 
+// Types
 type CommonClash = {
   handle: string;
   langs: Languages;
   modes: GameModes;
-  players: {
-    nickname: string;
-    position: number;
-  }[];
+};
+type CommonPlayerClash = {
+  nickname: string;
+};
+type InGamePlayerClash = CommonPlayerClash & {
+  completed: boolean;
+  rank: number;
+  duration: number | 0;
+  criteria?: number;
 };
 
 type LobbyClash = CommonClash & {
   started: false;
+  players: CommonPlayerClash[];
 };
 
 type InGameClash = CommonClash & {
@@ -99,28 +112,31 @@ type InGameClash = CommonClash & {
   finished: boolean;
   endDate: Date;
   mode: typeof GAMEMODES[number];
+  players: InGamePlayerClash[];
 };
 
-type CommonClashAPI = {
-  nbPlayersMin: number;
-  nbPlayersMax: number;
-  publicHandle: string;
-  clashDurationTypeId: "SHORT";
-  startTimestamp: number;
-  finished: boolean;
-  programmingLanguages: Languages;
-  modes: GameModes;
-  type: "PRIVATE";
-} & (
-  | {
+type CommonClashAPI =
+  & {
+    nbPlayersMin: number;
+    nbPlayersMax: number;
+    publicHandle: string;
+    clashDurationTypeId: "SHORT";
+    startTimestamp: number;
+    finished: boolean;
+    programmingLanguages: Languages;
+    modes: GameModes;
+    type: "PRIVATE";
+  }
+  & (
+    | {
       started: true;
       mode: typeof GAMEMODES[number];
       msBeforeEnd: number;
     }
-  | {
+    | {
       started: false;
     }
-);
+  );
 type UpdateClashAPI = CommonClashAPI & {
   minifiedPlayers: {
     id: number; // Player ID
@@ -132,22 +148,29 @@ type UpdateClashAPI = CommonClashAPI & {
   }[];
 };
 type FetchClashAPI = CommonClashAPI & {
-  players: {
-    codingamerId: number;
-    codingamerNickname: string;
-    codingamerHandle: string;
-    score: number; 
-    duration: number;
-    status: "OWNER" | "STANDARD";
-    testSessionStatus: "COMPLETED" | "READY";
-    languageId: (typeof LANGUAGES)[number];
-    rank: number;
-    position: number;
-    solutionShared: boolean;
-    testSessionHandle: string;
-    submissionId: number;
-  }[];
+  players: (
+    & {
+      codingamerId: number;
+      codingamerNickname: string;
+      codingamerHandle: string;
+      score: number;
+      duration: number;
+      status: "OWNER" | "STANDARD";
+      rank: number;
+      position: number;
+      criteria?: number;
+    }
+    & ({
+      testSessionStatus: "COMPLETED";
+      submissionId: number;
+      testSessionHandle: string;
+      solutionShared: boolean;
+      languageId: (typeof LANGUAGES)[number];
+    } | { testSessionStatus: "READY" })
+  )[];
 };
+
+const rateLimits: { [x: string]: number } = {};
 
 const codingameReq = (file: string, body: string) =>
   fetch(new URL(file, "https://www.codingame.com").toString(), {
@@ -160,11 +183,11 @@ const codingameReq = (file: string, body: string) =>
   });
 const createPrivateClash = async (
   langs: Languages,
-  gamemode: GameModes
+  gamemode: GameModes,
 ): Promise<string | undefined> => {
   const req = await codingameReq(
     "/services/ClashOfCode/createPrivateClash",
-    JSON.stringify([USERID, langs, gamemode])
+    JSON.stringify([USERID, langs, gamemode]),
   );
   if (!req.ok) {
     console.error("Coc: Error creating private clash.", req.statusText);
@@ -180,7 +203,7 @@ const createPrivateClash = async (
 const startClash = async (clash: string) => {
   const req = await codingameReq(
     "/services/ClashOfCode/startClashByHandle",
-    JSON.stringify([USERID, clash])
+    JSON.stringify([USERID, clash]),
   );
   if (!req.ok || req.status !== 204) {
     console.error(`Error starting game. ${JSON.stringify(req)}`);
@@ -188,30 +211,77 @@ const startClash = async (clash: string) => {
   }
   return true;
 };
-const getClash = async (handle: string): Promise<FetchClashAPI | undefined> =>
-{ 
+const getClash = async (
+  handle: string,
+): Promise<LobbyClash | InGameClash | undefined> => {
   const req = await codingameReq(
     "/services/ClashOfCode/findClashByHandle",
-    JSON.stringify([handle])
+    JSON.stringify([handle]),
   );
+  if (!req.ok || req.status !== 200) return undefined;
 
-  return req.ok && req.status === 200 ? (await req.json()) : undefined;
- }
-const submitCode = async (handle: string, code: string, language: typeof LANGUAGES[number]) => {
-  const testSesh = await codingameReq("/services/ClashOfCode/startClashTestSession", JSON.stringify([USERID, handle]));
+  const clashData: FetchClashAPI = await req.json();
+  return {
+    handle,
+    langs: clashData.programmingLanguages,
+    modes: clashData.modes,
+    ...(clashData.started
+      ? {
+        started: true,
+        finished: clashData.finished,
+        endDate: new Date(Date.now() + clashData.msBeforeEnd),
+        mode: clashData.mode,
+        players: clashData.players.map((v) => ({
+          nickname: v.codingamerNickname,
+          rank: v.rank,
+          completed: v.testSessionStatus === "COMPLETED",
+          duration: v.duration,
+          criteria: v.criteria,
+        })),
+      }
+      : {
+        started: false,
+        players: clashData.players.map((v) => ({
+          nickname: v.codingamerNickname,
+        })),
+      }),
+  };
+};
+const submitCode = async (
+  handle: string,
+  code: string,
+  language: typeof LANGUAGES[number],
+) => {
+  const testSesh = await codingameReq(
+    "/services/ClashOfCode/startClashTestSession",
+    JSON.stringify([USERID, handle]),
+  );
   if (!testSesh.ok || testSesh.status !== 200) return;
 
   const testSeshHandle = (await testSesh.json()).handle;
-  await codingameReq("/services/TestSession/submit", JSON.stringify([testSeshHandle, {code, programmingLanguageId: language}, null]));
-  await codingameReq("/services/ClashOfCode/shareCodinGamerSolutionByHandle", JSON.stringify([USERID, handle]));
-}
+  await codingameReq(
+    "/services/TestSession/submit",
+    JSON.stringify([
+      testSeshHandle,
+      { code, programmingLanguageId: language },
+      null,
+    ]),
+  );
+  await codingameReq(
+    "/services/ClashOfCode/shareCodinGamerSolutionByHandle",
+    JSON.stringify([USERID, handle]),
+  );
+};
 
 const clashEventManager = async (
   handle: string,
-  updateMessage: (data: LobbyClash | InGameClash) => void
-): Promise<boolean> => {
+  updateMessage: (data: LobbyClash | InGameClash) => void,
+): Promise<undefined> => {
   const clash = await getClash(handle);
-  if (!clash || clash.finished) return false;
+  if (!clash) return;
+
+  updateMessage(clash);
+  if (clash.started && clash.finished) return;
 
   const socket = io("https://push-community.codingame.com", {
     withCredentials: true,
@@ -229,9 +299,7 @@ const clashEventManager = async (
 
     switch (data.status) {
       case "updateCurrentClash": {
-        if (
-          !data.clashDto
-        ) {
+        if (!data.clashDto) {
           console.log("No clashDto");
           return;
         }
@@ -240,32 +308,46 @@ const clashEventManager = async (
         if (
           !clashData.publicHandle ||
           clashData.publicHandle !== handle
-        ) {console.log("PublicHandle ain thte same"); return;}
+        ) {
+          console.log("Update clash handle mismatch");
+          return;
+        }
 
-        console.log(started, clashData.started)
-        if (clashData.started && !started) {
+        if (clashData.started && !started && !clashData.finished) {
           started = true;
-          console.log("Started!!")
-          setTimeout(() => {submitCode(handle, "// thank you :3", clashData.programmingLanguages[0] || "Ruby");}, 2000)
+          submitCode(
+            handle,
+            "// thank you :3",
+            clashData.programmingLanguages[0] || "Ruby",
+          );
         }
 
         updateMessage({
           handle,
           langs: clashData.programmingLanguages,
           modes: clashData.modes,
-          players: clashData.minifiedPlayers.map((v) => ({
-            nickname: v.k,
-            position: v.p,
-          })),
           started: clashData.started,
-          ...(clashData.started ? {
-            finished: clashData.finished,
-            endDate: new Date(Date.now() + clashData.msBeforeEnd),
-            mode: clashData.mode
-          } : {
-            started: false
-          })
-        })
+          ...(clashData.started
+            ? {
+              finished: clashData.finished,
+              endDate: new Date(Date.now() + clashData.msBeforeEnd),
+              mode: clashData.mode,
+              players: clashData.minifiedPlayers.map((v) => ({
+                nickname: v.k,
+                completed: false,
+                duration: 0,
+                rank: v.r,
+              })),
+            }
+            : {
+              started: false,
+              players: clashData.minifiedPlayers.map((v) => ({
+                nickname: v.k,
+              })),
+            }),
+        });
+
+        if (clashData.finished) socket.close();
         break;
       }
       case "updateClash": {
@@ -274,24 +356,10 @@ const clashEventManager = async (
         const clashData = await getClash(handle);
         if (!clashData) return;
 
-        updateMessage({
-          handle,
-          langs: clashData.programmingLanguages,
-          modes: clashData.modes,
-          players: clashData.players.map((v) => ({
-            nickname: v.codingamerNickname,
-            position: v.position,
-          })),
-          started: clashData.started,
-          ...(clashData.started ? {
-            finished: clashData.finished,
-            endDate: new Date(Date.now() + clashData.msBeforeEnd),
-            mode: clashData.mode
-          } : {
-            started: false
-          })
-        });
-        break
+        updateMessage(clashData);
+
+        if (clashData.started && clashData.finished) socket.close();
+        break;
       }
     }
   });
@@ -301,54 +369,19 @@ const clashEventManager = async (
       !data.data ||
       !data.handle ||
       data.handle !== handle
-    )
+    ) {
       return;
+    }
 
     socket.close();
   });
 
-  return true;
-};
-
-const generateTable = (columns: number, items: string[]): string => {
-  columns = items.length > columns ? columns : items.length;
-  const columnWidths: number[] = items.reduce(
-    (reduced, current, currentIndex) => {
-      const columnIndex = currentIndex % columns;
-      reduced[columnIndex] = Math.max(reduced[columnIndex], current.length);
-      return reduced;
-    },
-    new Array(columns).fill(0)
-  );
-
-  const rows: string[] = items
-    .reduce<string[][]>((reduced, current, currentIndex) => {
-      if (currentIndex % columns === 0) reduced.push([]);
-      reduced[reduced.length - 1].push(current);
-      return reduced;
-    }, [])
-    .map((item) => {
-      const paddedRow = [...item, ...Array(columns - item.length).fill("")];
-      return `║ ${paddedRow
-        .map((value, index) => value.padEnd(columnWidths[index], " "))
-        .join(" ║ ")} ║`;
-    });
-
-  const headFootSeparator = (begin: string, separate: string, end: string) =>
-    begin +
-    columnWidths.map((width) => "═".repeat(width + 2)).join(separate) +
-    end;
-
-  return [
-    headFootSeparator("╔", "╦", "╗"),
-    ...rows,
-    headFootSeparator("╚", "╩", "╝"),
-  ].join("\n");
+  return;
 };
 
 const setCodinGameStyles = (
   emb: EmbedBuilder,
-  color?: boolean
+  color: boolean = true,
 ): EmbedBuilder => {
   emb.setAuthor({
     iconURL:
@@ -359,101 +392,165 @@ const setCodinGameStyles = (
   if (color) emb.setColor("#f2bb13");
   return emb;
 };
-
-const clashMessage = async (
-  channelID: string,
+const clashMessage = (
+  game: LobbyClash | InGameClash,
   ownerID: string,
-  langs: Languages,
-  modes: GameModes
-): Promise<[InteractionReplyOptions, string | undefined]> => {
-  if (rateLimits[channelID] !== undefined) {
-    return [
-      {
-        embeds: [
-          setCodinGameStyles(
-            embed({
-              title: "Clash of Code - Ratelimited",
-              message:
-                "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
-              kindOfEmbed: "error",
-            }),
-            false
-          ),
-        ],
-      },
-      undefined,
-    ];
-  }
-  rateLimits[channelID] = setTimeout(
-    () => delete rateLimits[channelID],
-    15_000
-  );
-
-  const clash = await createPrivateClash(langs, modes);
-  if (!clash) {
-    return [
-      {
-        embeds: [
-          setCodinGameStyles(
-            embed({
-              title: "Clash of Code - ERROR",
-              message: "Something went wrong with creating the clash.",
-              kindOfEmbed: "error",
-            })
-          ),
-        ],
-        ephemeral: true,
-      },
-      undefined,
-    ];
-  }
-
+): InteractionReplyOptions => {
   const urlButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Link)
     .setLabel("Open")
-    .setURL(`https://www.codingame.com/clashofcode/clash/${clash}`);
+    .setURL(`https://www.codingame.com/clashofcode/clash/${game.handle}`);
   const startButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Success)
     .setLabel("Start")
-    .setCustomId(`${command.command.name}_start_${ownerID}_${clash}`);
+    .setCustomId(`${command.command.name}_start_${ownerID}_${game.handle}`);
   const newButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Primary)
     .setLabel("New")
     .setCustomId(
-      `${command.command.name}_restart_${encodeSubset(
-        modes,
-        GAMEMODES
-      )}_${encodeSubset(langs, LANGUAGES)}`
+      `${command.command.name}_restart_${
+        encodeSubset(
+          game.modes,
+          GAMEMODES,
+        )
+      }_${encodeSubset(game.langs, LANGUAGES)}`,
     );
 
-  const bt = "```";
-  return [
-    {
+  return {
+    embeds: [
+      setCodinGameStyles(
+        embed({
+          title: `Clash of Code - ${
+            !game.started ? "Lobby" : game.finished ? "Finished" : game.mode
+          }`,
+          message: !game.started
+            ? `${
+              userMention(ownerID)
+            } is the host and can start the game. Others may start a new game.`
+            : game.finished
+            ? `The game has finished. ${
+              game.players.find((v) => v.rank === 1)?.nickname
+            } is the winner!`
+            : `The game is currently running. Join now, before it ends!\n-# ${
+              time(game.endDate, "R")
+            }`,
+        }),
+        true,
+      )
+        .addFields(
+          {
+            name: "Programming languages",
+            value: codeBlock(generateTable(MAX_COLUMNS, game.langs)),
+            inline: false,
+          },
+          {
+            name: "Players",
+            value:
+              (!game.started
+                ? game.players.map((v) => `- ${v.nickname}`)
+                : game.players.sort((a, b) => a.rank - b.rank).map((v) =>
+                  `${`${v.rank}. ${v.completed ? "✅" : "⌛"} ${v.nickname} ${
+                    v.completed
+                      ? `- ${v.duration / 1000} ${
+                        v.criteria !== undefined ? `- (${v.criteria})` : ""
+                      }`
+                      : ""
+                  }`}`
+                ))
+                .join("\n") +
+              " ",
+            inline: true,
+          },
+          {
+            name: "Game modes",
+            value: game.modes.map((v) => `- ${v}`).join("\n") + " ",
+            inline: true,
+          },
+        ),
+    ],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        urlButton,
+        newButton,
+        ...(!game.started ? [startButton] : []),
+      ),
+    ],
+  };
+};
+
+const createClashManager = async (
+  langs: Languages,
+  modes: GameModes,
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+) => {
+  if (!interaction.channelId) {
+    interaction.reply({
       embeds: [
         setCodinGameStyles(
           embed({
-            kindOfEmbed: "normal",
-            title: `Clash of Code - ${modes.join(" & ")}`,
-            message: `
-	  <@${ownerID}> is the current host, meaning only he may start the game. Anyone can open a new game though.
-
-	  **Allowed programming languages**
-	  ${bt + generateTable(MAX_COLUMNS, langs) + bt} 
-	  `,
+            title: "Clash of Code - ERROR",
+            message: "This interaction is not in a channel.",
+            kindOfEmbed: "error",
           }),
-          true
+          false,
         ),
       ],
-      components: [
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          urlButton,
-          startButton,
-          newButton
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (rateLimits[interaction.channelId] !== undefined) {
+    interaction.reply({
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - Ratelimited",
+            message:
+              "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+            kindOfEmbed: "error",
+          }),
+          false,
         ),
       ],
+    });
+  }
+
+  rateLimits[interaction.channelId] = setTimeout(
+    () => {
+      delete rateLimits[interaction.channelId];
     },
-    clash,
-  ];
+    15_000,
+  );
+
+  const clash = await createPrivateClash(langs, modes);
+  if (!clash) {
+    await interaction.reply({
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - ERROR",
+            message: "Something went wrong with creating the clash.",
+            kindOfEmbed: "error",
+          }),
+        ),
+      ],
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.reply(clashMessage({
+    handle: clash,
+    langs,
+    modes,
+    players: [{ nickname: "loading..." }],
+    started: false,
+  }, interaction.user.id));
+
+  await clashEventManager(clash, async (data) => {
+    await interaction.editReply(clashMessage(data, interaction.user.id));
+  });
 };
 
 const command: SlashCommand = {
@@ -479,12 +576,13 @@ const command: SlashCommand = {
           ALL_GAMEMODE_COMBINATIONS.flatMap((v) => ({
             name: v.map((v) => v.toLowerCase()).join(" & "),
             value: v.join(","),
-          }))
+          })),
         )
     ),
 
   execute: async (interaction) => {
-    const modes = interaction.options.getString("gamemodes", true);
+    const modes: GameModes = interaction.options.getString("gamemodes", true)
+      .split(",");
     let langInput = interaction.options
       .getString("languages", true)
       .split(",")
@@ -496,18 +594,7 @@ const command: SlashCommand = {
       }, []);
     if (langInput.includes("All")) langInput = ["All"];
 
-    const [clashMsg, clashHandle] = await clashMessage(
-      interaction.channelId,
-      interaction.user.id,
-      langInput,
-      modes.split(",")
-    );
-    await interaction.reply({content: "HI", ...clashMsg});
-
-    if (!clashHandle) return;
-    await clashEventManager(clashHandle, async (data) => {
-      await interaction.editReply({ content: JSON.stringify(data) });
-    });
+    await createClashManager(langInput, modes, interaction);
   },
 
   autocomplete: async (interaction) => {
@@ -535,8 +622,9 @@ const command: SlashCommand = {
       if (
         !input.includes(current) &&
         (cInput === "" || current.startsWith(cInput))
-      )
+      ) {
         reduce.push(current);
+      }
 
       return reduce;
     }, []).slice(-25);
@@ -549,11 +637,11 @@ const command: SlashCommand = {
       `${input.join(",")},${LONGEST_LANGUAGES}`.length <= 100
         ? autocompleteRes
         : [
-            {
-              name: "You've selected too many options for discord to handle.",
-              value: "",
-            },
-          ]
+          {
+            name: "You've selected too many options for discord to handle.",
+            value: "",
+          },
+        ],
     );
   },
 
@@ -582,7 +670,7 @@ const command: SlashCommand = {
                   : "Something went wrong while sending the start signal, did the game already start?",
                 kindOfEmbed: "error",
               }),
-              result
+              result,
             ),
           ],
           ephemeral: true,
@@ -590,14 +678,12 @@ const command: SlashCommand = {
         break;
       }
       case "restart": {
-        const [replyOptions] = await clashMessage(
-          interaction.channelId,
-          interaction.user.id,
+        createClashManager(
           decodeSubset(id[3], LANGUAGES),
-          decodeSubset(id[2], GAMEMODES)
+          decodeSubset(id[2], GAMEMODES),
+          interaction,
         );
 
-        await interaction.reply(replyOptions);
         break;
       }
     }
