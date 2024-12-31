@@ -1,10 +1,14 @@
 import {
   ActionRowBuilder,
+  BaseMessageOptions,
   ButtonBuilder,
   ButtonInteraction,
   ButtonStyle,
   codeBlock,
   EmbedBuilder,
+  MessageEditOptions,
+  MessagePayload,
+  MessagePayloadOption,
   SlashCommandBuilder,
   time,
   userMention,
@@ -60,7 +64,6 @@ const LONGEST_LANGUAGES = ((v) => v[v.length - 1])(
 );
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
 const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
-const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   ...Array(1 << GAMEMODES.length).keys(),
 ]
@@ -71,6 +74,7 @@ type GameModes = (typeof GAMEMODES)[number][];
 type Languages = (typeof LANGUAGES)[number][];
 
 // Utils
+const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const encodeSubset = (subset: string[], base: string[]): string =>
   subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
 const decodeSubset = (encodedString: string, base: string[]): Languages =>
@@ -280,12 +284,12 @@ const submitCode = async (
 
 const clashEventManager = async (
   handle: string,
-  updateMessage: (data: LobbyClash | InGameClash) => void,
+  updateMessage: (data: [LobbyClash | InGameClash, boolean?]) => void,
 ): Promise<undefined> => {
   const clash = await getClash(handle);
   if (!clash) return;
 
-  updateMessage(clash);
+  updateMessage([clash]);
   if (clash.started && clash.finished) return;
 
   const socket = io("https://push-community.codingame.com", {
@@ -318,16 +322,17 @@ const clashEventManager = async (
           return;
         }
 
-        if (clashData.started && !started && !clashData.finished) {
+        const justStarted = clashData.started && !started && !clashData.finished;
+        if (justStarted) {
           started = true;
-          submitCode(
+          await submitCode(
             handle,
             "// thank you :3",
             clashData.programmingLanguages[0] || "Ruby",
           );
         }
 
-        updateMessage({
+        updateMessage([{
           handle,
           langs: clashData.programmingLanguages,
           modes: clashData.modes,
@@ -351,7 +356,7 @@ const clashEventManager = async (
                 nickname: v.k,
               })),
             }),
-        });
+        }, justStarted]);
 
         if (clashData.finished) socket.close();
         break;
@@ -362,7 +367,7 @@ const clashEventManager = async (
         const clashData = await getClash(handle);
         if (!clashData) return;
 
-        updateMessage(clashData);
+        updateMessage([clashData]);
 
         if (clashData.started && clashData.finished) socket.close();
         break;
@@ -401,7 +406,7 @@ const setCodinGameStyles = (
 const clashMessage = (
   game: LobbyClash | InGameClash,
   ownerID: string,
-): InteractionReplyOptions => {
+): BaseMessageOptions => {
   const urlButton = new ButtonBuilder()
     .setStyle(ButtonStyle.Link)
     .setLabel("Open")
@@ -526,6 +531,7 @@ const createClashManager = async (
           false,
         ),
       ],
+      ephemeral: true,
     });
   }
 
@@ -553,19 +559,24 @@ const createClashManager = async (
     return;
   }
 
-  const message = await interaction.reply({
-    ...clashMessage({
+  //await interaction.deferReply();
+  let message = await interaction.reply(
+    clashMessage({
       handle: clash,
       langs,
       modes,
       players: [{ nickname: "loading..." }],
       started: false,
-    }, interaction.user.id),
-    fetchReply: true,
-  });
+    }, interaction.user.id)
+  );
 
   await clashEventManager(clash, async (data) => {
-    await message.edit(clashMessage(data, interaction.user.id));
+    const [messageData, newMessage] = data;
+    // if (newMessage) {
+    //   await message.delete()
+    //   message = await interaction.followUp(clashMessage(messageData, interaction.user.id))
+    // }
+    await message.edit(clashMessage(messageData, interaction.user.id));
   });
 };
 

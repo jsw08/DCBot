@@ -2,6 +2,7 @@
   "tasks": {
     "dev": "deno run -A --watch ./src/main.ts"
   },
+  "nodeModulesDir": "manual",
   "imports": {
     "$/": "./src/",
     "$utils/": "./src/utils/",
