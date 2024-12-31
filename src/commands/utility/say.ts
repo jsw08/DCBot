@@ -10,14 +10,10 @@ const command: SlashCommand = {
     .setName("say")
     .setDescription("Send an anonymous message message.")
     .addStringOption((opts) =>
-      opts
-        .setName("content")
-        .setDescription("Just a normal message.")
+      opts.setName("content").setDescription("Just a normal message."),
     )
     .addStringOption((opts) =>
-      opts
-        .setName("json")
-        .setDescription("Additional json for the request.")
+      opts.setName("json").setDescription("Additional json for the request."),
     ),
   execute: async (interaction) => {
     const content = interaction.options.getString("content");
@@ -25,11 +21,13 @@ const command: SlashCommand = {
 
     if (content === null && json === null) {
       await interaction.reply({
-        embeds: [embed({
-          title: "Error",
-          message: "You must specify at least content or json.",
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Error",
+            message: "You must specify at least content or json.",
+            kindOfEmbed: "error",
+          }),
+        ],
         ephemeral: true,
       });
       return;
@@ -45,12 +43,13 @@ const command: SlashCommand = {
       });
     } catch (e) {
       interaction.followUp({
-        embeds: [embed({
-          title: "Error",
-          message:
-            `Something went wrong while sending the message. \`\`\`ts\n${e}\`\`\``,
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Error",
+            message: `Something went wrong while sending the message. \`\`\`ts\n${e}\`\`\``,
+            kindOfEmbed: "error",
+          }),
+        ],
       });
     }
   },

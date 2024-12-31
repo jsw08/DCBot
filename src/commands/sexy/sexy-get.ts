@@ -27,9 +27,7 @@ const getSexyImages = async (
   const images: string[][] = [[]];
 
   try {
-    const sexyImageFiles = Deno.readDir(
-      join(dir, nickname),
-    );
+    const sexyImageFiles = Deno.readDir(join(dir, nickname));
 
     for await (const image of sexyImageFiles) {
       if (!imageFileTypes.some((v) => image.name.endsWith(v))) continue;
@@ -92,23 +90,23 @@ const imagesPageProps = (
       title: nickname.at(0)?.toUpperCase() + nickname.slice(1),
       kindOfEmbed: "success",
     })
-      .setImage(
-        new URL(`/${nickname}/${v}`, config.SEXY_URL)
-          .toString(),
-      )
+      .setImage(new URL(`/${nickname}/${v}`, config.SEXY_URL).toString())
       .setURL(config.SEXY_TITLE_URL)
-      .setAuthor({ name: "Images may take a moment to load." })
+      .setAuthor({ name: "Images may take a moment to load." }),
   );
   return {
-    embeds: embeds.length ? embeds : [
-      embed({
-        message: "No images were found of this sexy mf :/",
-        kindOfEmbed: "error",
-      }),
-    ],
-    components: images.length > 1
-      ? [paginatorRow(nickname, userId, currentPage, images.length - 1)]
-      : [],
+    embeds: embeds.length
+      ? embeds
+      : [
+          embed({
+            message: "No images were found of this sexy mf :/",
+            kindOfEmbed: "error",
+          }),
+        ],
+    components:
+      images.length > 1
+        ? [paginatorRow(nickname, userId, currentPage, images.length - 1)]
+        : [],
   };
 };
 
@@ -128,37 +126,34 @@ const addCommonSubCommandOptions = (
     arg0: SlashCommandSubcommandBuilder,
   ) => SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder => {
-  subc
-    .addStringOption((opt) =>
-      opt
-        .setName(`nickname`)
-        .setDescription("The nickname of the sexy mf.")
-        .setAutocomplete(true)
-        .setRequired(true)
-    );
+  subc.addStringOption((opt) =>
+    opt
+      .setName(`nickname`)
+      .setDescription("The nickname of the sexy mf.")
+      .setAutocomplete(true)
+      .setRequired(true),
+  );
   subc = requiredCommands ? requiredCommands(subc) : subc;
   return subc.addBooleanOption((opt) =>
     opt
       .setName(`public`)
       .setDescription(
         "This option makes the response visible to all, disabled by default.",
-      )
+      ),
   );
 };
 const subCommandImage = (
   subc: SlashCommandSubcommandBuilder,
 ): SlashCommandSubcommandBuilder =>
   addCommonSubCommandOptions(subc, (subc) =>
-    subc
-      .addStringOption((opt) =>
-        opt
-          .setName("image")
-          .setDescription(
-            "View a specific image.",
-          )
-          .setAutocomplete(true)
-          .setRequired(true)
-      ))
+    subc.addStringOption((opt) =>
+      opt
+        .setName("image")
+        .setDescription("View a specific image.")
+        .setAutocomplete(true)
+        .setRequired(true),
+    ),
+  )
     .setName("image")
     .setDescription("View a specific sexy image.");
 const subCommandCarousel = (
@@ -169,10 +164,8 @@ const subCommandCarousel = (
     .addIntegerOption((opt) =>
       opt
         .setName("page")
-        .setDescription(
-          "Sets the default page for the carousel. (default: 0)",
-        )
-        .setAutocomplete(true)
+        .setDescription("Sets the default page for the carousel. (default: 0)")
+        .setAutocomplete(true),
     )
     .setName("carousel");
 
@@ -199,13 +192,7 @@ const command: SlashCommand = {
     let images: string[][] = [];
     if (subc === "image" && image) {
       try {
-        await Deno.lstat(
-          join(
-            dir,
-            nickname,
-            image,
-          ),
-        );
+        await Deno.lstat(join(dir, nickname, image));
       } catch (e) {
         if (!(e instanceof Deno.errors.NotFound)) throw e;
         sendNotFoundEmbed(interaction);
@@ -227,7 +214,7 @@ const command: SlashCommand = {
         images,
         nickname,
         interaction.user.id,
-        image ? 0 : (page && page <= images.length && page >= 0) ? page : 0,
+        image ? 0 : page && page <= images.length && page >= 0 ? page : 0,
       ),
       ephemeral: pub == null ? true : !pub,
     });
@@ -251,12 +238,7 @@ const command: SlashCommand = {
       if (page > length - 1) page = length;
 
       await interaction.update({
-        ...imagesPageProps(
-          images,
-          nickname,
-          interaction.user.id,
-          page,
-        ),
+        ...imagesPageProps(images, nickname, interaction.user.id, page),
       });
     }
   },
@@ -265,14 +247,16 @@ const command: SlashCommand = {
     const focusedOption = interaction.options.getFocused(true);
     const respondWithNotFound = async (msg: "nickname" | "image") => {
       const messages: Record<typeof msg, string> = {
-        "nickname": "That sexy mf wasn't found :/",
-        "image": "That sexy mf doesn't have any images.",
+        nickname: "That sexy mf wasn't found :/",
+        image: "That sexy mf doesn't have any images.",
       };
 
-      await interaction.respond([{
-        name: messages[msg],
-        value: "",
-      }]);
+      await interaction.respond([
+        {
+          name: messages[msg],
+          value: "",
+        },
+      ]);
     };
 
     switch (focusedOption.name) {
@@ -296,11 +280,10 @@ const command: SlashCommand = {
           break;
         }
 
-        let options = Array.from({ length: images.length })
-          .map((_, index) => ({
-            name: index.toString(),
-            value: index,
-          }));
+        let options = Array.from({ length: images.length }).map((_, index) => ({
+          name: index.toString(),
+          value: index,
+        }));
 
         if (focusedOption.value === "") {
           const length = images.length - 1;
@@ -317,9 +300,7 @@ const command: SlashCommand = {
             .splice(0, 25);
         }
 
-        await interaction.respond(
-          options,
-        );
+        await interaction.respond(options);
         break;
       }
       case "image": {
@@ -357,7 +338,8 @@ const command: SlashCommand = {
   },
 };
 
-Deno.serve({ port: parseInt(config.SEXY_PORT) }, (req) => { // the 'cdn'
+Deno.serve({ port: parseInt(config.SEXY_PORT) }, (req) => {
+  // the 'cdn'
   return serveDir(req, {
     fsRoot: `${dir}`,
   });
