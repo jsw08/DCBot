@@ -35,17 +35,19 @@ const dcTimestamp = (date: number, type: string) =>
   `<t:${Math.floor(date / 1000)}:${type}>`;
 
 const sendReminders = () => {
-  const reminders = db
-    .sql`SELECT message, id, discord_id, date FROM reminders WHERE date < unixepoch('now')`;
+  const reminders = db.sql`SELECT message, id, discord_id, date FROM reminders WHERE date < unixepoch('now')`;
   for (const i of reminders) {
     const reminder = i as Reminder;
     client.users.send(reminder.discord_id, {
-      embeds: [embed({
-        title: "Reminder",
-        message: `You asked me to remember the following message at ${
-          dcTimestamp(+reminder.date, "t")
-        }.\n${btWrap(reminder.message)}`,
-      })],
+      embeds: [
+        embed({
+          title: "Reminder",
+          message: `You asked me to remember the following message at ${dcTimestamp(
+            +reminder.date,
+            "t",
+          )}.\n${btWrap(reminder.message)}`,
+        }),
+      ],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
   }
@@ -64,7 +66,7 @@ const command: SlashCommand = {
       opts
         .setName("message")
         .setDescription("Your reminder message.")
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((opts) =>
       opts
@@ -72,17 +74,18 @@ const command: SlashCommand = {
         .setDescription(
           "Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.",
         )
-        .setRequired(true)
+        .setRequired(true),
     ),
   execute: async (interaction) => {
     if (!Object.keys(interaction.authorizingIntegrationOwners).includes("1")) {
       interaction.reply({
-        embeds: [embed({
-          title: "Reminder - ERROR",
-          message:
-            `To receive direct messages from me, please install this bot in your account.`,
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Reminder - ERROR",
+            message: `To receive direct messages from me, please install this bot in your account.`,
+            kindOfEmbed: "error",
+          }),
+        ],
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
@@ -108,16 +111,19 @@ const command: SlashCommand = {
     }
 
     const reply = await interaction.reply({
-      embeds: [embed({
-        title: "Reminder - confirmation",
-        message: `Would you like to be reminded of the following message at ${
-          dcTimestamp(date.getTime(), "f")
-        }? You have two minutes to decide.\n-# tip: (ignore this message to cancel, you can still create a new reminder while this one is awaiting.)\n${
-          btWrap(message)
-        }`,
+      embeds: [
+        embed({
+          title: "Reminder - confirmation",
+          message: `Would you like to be reminded of the following message at ${dcTimestamp(
+            date.getTime(),
+            "f",
+          )}? You have two minutes to decide.\n-# tip: (ignore this message to cancel, you can still create a new reminder while this one is awaiting.)\n${btWrap(
+            message,
+          )}`,
 
-        kindOfEmbed: "normal",
-      })],
+          kindOfEmbed: "normal",
+        }),
+      ],
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
@@ -135,19 +141,19 @@ const command: SlashCommand = {
         componentType: ComponentType.Button,
         time: 120_000,
       });
-      await reply.edit(
-        {
-          embeds: [embed({
+      await reply.edit({
+        embeds: [
+          embed({
             title: "Reminder - confirmation",
-            message:
-              `Your reminder has been successfully set! It will trigger ${
-                dcTimestamp(date.getTime(), "R")
-              }.`,
+            message: `Your reminder has been successfully set! It will trigger ${dcTimestamp(
+              date.getTime(),
+              "R",
+            )}.`,
             kindOfEmbed: "success",
-          })],
-          components: [],
-        },
-      );
+          }),
+        ],
+        components: [],
+      });
 
       db.exec(
         "INSERT INTO reminders (discord_id, date, message) VALUES (:discord_id, :date, :message)",
@@ -160,18 +166,20 @@ const command: SlashCommand = {
     } catch (e) {
       if (
         (e as { code?: DiscordjsErrorCodes }).code !==
-          DiscordjsErrorCodes.InteractionCollectorError
+        DiscordjsErrorCodes.InteractionCollectorError
       ) {
         throw e;
       }
 
       reply.edit({
-        embeds: [embed({
-          title: "Reminder - confirmation",
-          message:
-            "Your reminder has been canceled because it wasn't confirmed within the 2-minute timeframe.",
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Reminder - confirmation",
+            message:
+              "Your reminder has been canceled because it wasn't confirmed within the 2-minute timeframe.",
+            kindOfEmbed: "error",
+          }),
+        ],
         components: [],
       });
     }

@@ -28,8 +28,7 @@ try {
     args: ["--version"],
     stdout: "null",
     stderr: "null",
-  })
-    .spawn();
+  }).spawn();
 } catch (e) {
   if (!(e instanceof Deno.errors.NotFound)) throw e;
 
@@ -71,11 +70,11 @@ const typstRender = async (
       "-f",
       "png",
       "--input",
-      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${
-        formatDate(now.getDate())
-      } ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${
-        formatDate(now.getSeconds())
-      }`}`,
+      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${formatDate(
+        now.getDate(),
+      )} ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${formatDate(
+        now.getSeconds(),
+      )}`}`,
       "-",
       outputPath,
     ],
@@ -87,14 +86,15 @@ const typstRender = async (
 
   const typstWriter = typstChild.stdin.getWriter();
   try {
-    await typstWriter.write(new TextEncoder()
-      .encode(`
+    await typstWriter.write(
+      new TextEncoder().encode(`
 	#set page(height: auto, width: auto, margin: 1em${
-        transparant ? ", fill: none" : ""
-      })
+    transparant ? ", fill: none" : ""
+  })
 	${transparant ? "#set text(fill: white)" : ""}
 	${input}
-      `));
+      `),
+    );
     await typstWriter.close();
   } catch (e) {
     if (!(e instanceof Deno.errors.WriteZero)) throw e;
@@ -139,11 +139,13 @@ const typstHandler = async (
 ): Promise<void> => {
   if (!input) {
     await interaction.followUp({
-      embeds: [embed({
-        title: "Typst",
-        kindOfEmbed: "error",
-        message: "Please provide valid typst code.",
-      })],
+      embeds: [
+        embed({
+          title: "Typst",
+          kindOfEmbed: "error",
+          message: "Please provide valid typst code.",
+        }),
+      ],
       components: [
         delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
       ],
@@ -154,14 +156,16 @@ const typstHandler = async (
   const typst = await typstMessage(input, transparantBackground);
   if (isTypstError(typst)) {
     interaction.followUp({
-      embeds: [embed({
-        title: "Typst",
-        message:
-          `Error while using running typst (${typst.error}).` + typst.errorMsg
-            ? `\`\`\`${typst.errorMsg}\`\`\``
-            : "",
-        kindOfEmbed: "error",
-      })],
+      embeds: [
+        embed({
+          title: "Typst",
+          message:
+            `Error while using running typst (${typst.error}).` + typst.errorMsg
+              ? `\`\`\`${typst.errorMsg}\`\`\``
+              : "",
+          kindOfEmbed: "error",
+        }),
+      ],
       components: [
         delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
       ],
@@ -189,15 +193,17 @@ const codeModal = (transparantBackground: boolean, attachFile: boolean) => {
     .setLabel("Typst code.")
     .setStyle(TextInputStyle.Paragraph);
 
-  const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
-    .addComponents(codeInput);
+  const inputRow =
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+      codeInput,
+    );
 
   return new ModalBuilder()
     .setTitle("Typst editor.")
     .setCustomId(
-      `${command.command.name}_${Number(transparantBackground)}_${
-        Number(attachFile)
-      }`,
+      `${command.command.name}_${Number(transparantBackground)}_${Number(
+        attachFile,
+      )}`,
     )
     .addComponents(inputRow);
 };
@@ -207,19 +213,20 @@ const commonCommands = (
   reqCmds?: (
     subc: SlashCommandSubcommandBuilder,
   ) => SlashCommandSubcommandBuilder,
-): SlashCommandSubcommandBuilder => ((reqCmds ? reqCmds(subc) : subc)
-  .addBooleanOption((opts) =>
-    opts
-      .setName("transparant")
-      .setDescription(
-        "Makes the png background transparant. ONLY COMPATIBLE WITH DISCORD DARK MODE. (ENABLED)",
-      )
-  )
-  .addBooleanOption((opts) =>
-    opts
-      .setName("file")
-      .setDescription("Attaches the given typst code as a file. (DISABLED)")
-  ));
+): SlashCommandSubcommandBuilder =>
+  (reqCmds ? reqCmds(subc) : subc)
+    .addBooleanOption((opts) =>
+      opts
+        .setName("transparant")
+        .setDescription(
+          "Makes the png background transparant. ONLY COMPATIBLE WITH DISCORD DARK MODE. (ENABLED)",
+        ),
+    )
+    .addBooleanOption((opts) =>
+      opts
+        .setName("file")
+        .setDescription("Attaches the given typst code as a file. (DISABLED)"),
+    );
 
 const command: SlashCommand = {
   inDm: true,
@@ -230,30 +237,32 @@ const command: SlashCommand = {
     .setDescription("Compiles typst code.")
     .addSubcommand((subc) =>
       commonCommands(subc, (subc) =>
-        subc
-          .addStringOption((opts) =>
-            opts
-              .setName("code")
-              .setDescription("Provide typst code.")
-              .setRequired(true)
-          ))
+        subc.addStringOption((opts) =>
+          opts
+            .setName("code")
+            .setDescription("Provide typst code.")
+            .setRequired(true),
+        ),
+      )
         .setName("inline")
-        .setDescription("Compiles the given typst-oneline code to an image.")
+        .setDescription("Compiles the given typst-oneline code to an image."),
     )
     .addSubcommand((subc) =>
       commonCommands(subc)
         .setName("multiline")
-        .setDescription("Compiles the given typst code to an image.")
+        .setDescription("Compiles the given typst code to an image."),
     ),
   execute: async (interaction) => {
     if (!typstInstalled) {
       await interaction.reply({
-        embeds: [embed({
-          title: "Typst",
-          message:
-            "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Typst",
+            message:
+              "Typst wasn't setup properly on the server. (note to dev: please include typst in path.)",
+            kindOfEmbed: "error",
+          }),
+        ],
         components: [
           delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
         ],

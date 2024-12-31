@@ -54,8 +54,8 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   .slice(1)
   .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
-type GameModes = (typeof GAMEMODES[number])[];
-type Languages = (typeof LANGUAGES[number])[];
+type GameModes = (typeof GAMEMODES)[number][];
+type Languages = (typeof LANGUAGES)[number][];
 
 const rateLimits: { [x: string]: number } = {};
 
@@ -88,12 +88,12 @@ const createPrivateClash = async (
     const req = await fetch(
       "https://www.codingame.com/services/ClashOfCode/createPrivateClash",
       {
-        "headers": {
+        headers: {
           "Content-Type": "application/json;charset=utf-8",
-          "Cookie": `rememberMe=${token}`,
+          Cookie: `rememberMe=${token}`,
         },
-        "body": JSON.stringify([uid, langs, gamemode]),
-        "method": "POST",
+        body: JSON.stringify([uid, langs, gamemode]),
+        method: "POST",
       },
     );
     const json = await req.json();
@@ -115,12 +115,12 @@ const startClashByHandle = async (clash: string) => {
     const req = await fetch(
       "https://www.codingame.com/services/ClashOfCode/startClashByHandle",
       {
-        "headers": {
+        headers: {
           "Content-Type": "application/json;charset=utf-8",
-          "Cookie": `rememberMe=${token}`,
+          Cookie: `rememberMe=${token}`,
         },
-        "body": JSON.stringify([uid, clash]),
-        "method": "POST",
+        body: JSON.stringify([uid, clash]),
+        method: "POST",
       },
     );
     if (!req.ok) throw Error("Error starting game.");
@@ -142,23 +142,22 @@ const generateTable = (columns: number, items: string[]): string => {
     new Array(columns).fill(0),
   );
 
-  const rows: string[] = items.reduce<string[][]>(
-    (reduced, current, currentIndex) => {
+  const rows: string[] = items
+    .reduce<string[][]>((reduced, current, currentIndex) => {
       if (currentIndex % columns === 0) reduced.push([]);
       reduced[reduced.length - 1].push(current);
       return reduced;
-    },
-    [],
-  ).map((item) => {
-    const paddedRow = [...item, ...Array(columns - item.length).fill("")];
-    return `║ ${
-      paddedRow.map((value, index) => value.padEnd(columnWidths[index], " "))
-        .join(" ║ ")
-    } ║`;
-  });
+    }, [])
+    .map((item) => {
+      const paddedRow = [...item, ...Array(columns - item.length).fill("")];
+      return `║ ${paddedRow
+        .map((value, index) => value.padEnd(columnWidths[index], " "))
+        .join(" ║ ")} ║`;
+    });
 
   const headFootSeparator = (begin: string, separate: string, end: string) =>
-    begin + columnWidths.map((width) => "═".repeat(width + 2)).join(separate) +
+    begin +
+    columnWidths.map((width) => "═".repeat(width + 2)).join(separate) +
     end;
 
   return [
@@ -190,15 +189,17 @@ const clashMessage = async (
 ): Promise<InteractionReplyOptions> => {
   if (rateLimits[channelID] !== undefined) {
     return {
-      embeds: [setCodinGameStyles(
-        embed({
-          title: "Clash of Code - Ratelimited",
-          message:
-            "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
-          kindOfEmbed: "error",
-        }),
-        false,
-      )],
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - Ratelimited",
+            message:
+              "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+            kindOfEmbed: "error",
+          }),
+          false,
+        ),
+      ],
     };
   }
   rateLimits[channelID] = setTimeout(
@@ -206,17 +207,18 @@ const clashMessage = async (
     15_000,
   );
 
-  const clash = await createPrivateClash(
-    langs,
-    modes,
-  );
+  const clash = await createPrivateClash(langs, modes);
   if (!clash) {
     return {
-      embeds: [setCodinGameStyles(embed({
-        title: "Clash of Code - ERROR",
-        message: "Something went wrong with creating the clash.",
-        kindOfEmbed: "error",
-      }))],
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - ERROR",
+            message: "Something went wrong with creating the clash.",
+            kindOfEmbed: "error",
+          }),
+        ),
+      ],
       ephemeral: true,
     };
   }
@@ -233,9 +235,10 @@ const clashMessage = async (
     .setStyle(ButtonStyle.Primary)
     .setLabel("New")
     .setCustomId(
-      `${command.command.name}_restart_${encodeSubset(modes, GAMEMODES)}_${
-        encodeSubset(langs, LANGUAGES)
-      }`,
+      `${command.command.name}_restart_${encodeSubset(modes, GAMEMODES)}_${encodeSubset(
+        langs,
+        LANGUAGES,
+      )}`,
     );
 
   const bt = "```";
@@ -255,8 +258,13 @@ const clashMessage = async (
         true,
       ),
     ],
-    components: [new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(urlButton, startButton, newButton)],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        urlButton,
+        startButton,
+        newButton,
+      ),
+    ],
   };
 };
 
@@ -272,7 +280,7 @@ const command: SlashCommand = {
         .setName("languages")
         .setDescription("The coding lanugages for the clash (comma seperated).")
         .setRequired(true)
-        .setAutocomplete(true)
+        .setAutocomplete(true),
     )
     .addStringOption((opts) =>
       opts
@@ -284,12 +292,13 @@ const command: SlashCommand = {
             name: v.map((v) => v.toLowerCase()).join(" & "),
             value: v.join(","),
           })),
-        )
+        ),
     ),
 
   execute: async (interaction) => {
     const modes = interaction.options.getString("gamemodes", true);
-    let langInput = interaction.options.getString("languages", true)
+    let langInput = interaction.options
+      .getString("languages", true)
       .split(",")
       .reduce<Languages>((reduced, current) => {
         const index = LOWERCASE_LANGUAGES.indexOf(current.toLowerCase());
@@ -314,30 +323,31 @@ const command: SlashCommand = {
 
     const input = focusedOption.value.split(",");
     const cInput = input[input.length - 1];
-    const found = input.slice(0, -1).find((v) =>
-      !LOWERCASE_LANGUAGES.some((l) => l === v)
-    );
+    const found = input
+      .slice(0, -1)
+      .find((v) => !LOWERCASE_LANGUAGES.some((l) => l === v));
 
     if (found) {
-      await interaction.respond([{
-        name: `${found} is not a valid language.`,
-        value: "",
-      }]);
+      await interaction.respond([
+        {
+          name: `${found} is not a valid language.`,
+          value: "",
+        },
+      ]);
       return;
     }
 
-    const resLangs = LANGUAGES
-      .reduce<string[]>((reduce, current) => {
-        current = current.toLowerCase();
+    const resLangs = LANGUAGES.reduce<string[]>((reduce, current) => {
+      current = current.toLowerCase();
 
-        if (
-          !input.includes(current) &&
-          (cInput === "" || current.startsWith(cInput))
-        ) reduce.push(current);
+      if (
+        !input.includes(current) &&
+        (cInput === "" || current.startsWith(cInput))
+      )
+        reduce.push(current);
 
-        return reduce;
-      }, [])
-      .slice(-25);
+      return reduce;
+    }, []).slice(-25);
 
     const autocompleteRes = resLangs.map((v) => {
       v = [...input.slice(0, -1), v].join(",");
@@ -346,10 +356,12 @@ const command: SlashCommand = {
     await interaction.respond(
       `${input.join(",")},${LONGEST_LANGUAGES}`.length <= 100
         ? autocompleteRes
-        : [{
-          name: "You've selected too many options for discord to handle.",
-          value: "",
-        }],
+        : [
+            {
+              name: "You've selected too many options for discord to handle.",
+              value: "",
+            },
+          ],
     );
   },
 

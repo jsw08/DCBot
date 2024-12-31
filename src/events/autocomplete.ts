@@ -14,17 +14,21 @@ const execute = (interaction: Interaction) => {
   ) {
     if (
       interaction.options.getFocused(true).type ===
-        ApplicationCommandOptionType.Integer
+      ApplicationCommandOptionType.Integer
     ) {
-      interaction.respond([{
-        name: "You don't have access. (In this location.)",
-        value: 0,
-      }]);
+      interaction.respond([
+        {
+          name: "You don't have access. (In this location.)",
+          value: 0,
+        },
+      ]);
     } else {
-      interaction.respond([{
-        name: "You don't have access. (In this location.)",
-        value: "",
-      }]);
+      interaction.respond([
+        {
+          name: "You don't have access. (In this location.)",
+          value: "",
+        },
+      ]);
     }
     return;
   }

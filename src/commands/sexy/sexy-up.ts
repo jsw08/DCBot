@@ -16,10 +16,7 @@ import { config } from "$utils/config.ts";
 import { client } from "$/main.ts";
 import { roleMention } from "discord.js";
 
-const ROLES_PING = config.SEXY_LOG_ROLES
-  .split(",")
-  .map(roleMention)
-  .join(", ")
+const ROLES_PING = config.SEXY_LOG_ROLES.split(",").map(roleMention).join(", ");
 
 const getSexyChannels = (): TextChannel[] => {
   const channels: TextChannel[] = [];
@@ -48,7 +45,8 @@ const getSexyChannels = (): TextChannel[] => {
 
     const permissions = channel.permissionsFor(client.user);
     if (
-      !permissions || !permissions.has("ViewChannel") ||
+      !permissions ||
+      !permissions.has("ViewChannel") ||
       !permissions.has("SendMessages")
     ) {
       console.error(
@@ -69,8 +67,8 @@ const checkFilename = (str: string): boolean => {
   return !invalidCharsPattern.test(str);
 };
 
-const contentTypes: string[] = imageFileTypes.map((v) =>
-  `image/${v.replace(".", "")}`
+const contentTypes: string[] = imageFileTypes.map(
+  (v) => `image/${v.replace(".", "")}`,
 );
 const command: SlashCommand = {
   permissions: "select_few",
@@ -86,23 +84,21 @@ const command: SlashCommand = {
           "The nickname for storing the image. You can also enter a new nickname.",
         )
         .setRequired(true)
-        .setAutocomplete(true)
+        .setAutocomplete(true),
     )
     .addStringOption((opt) =>
       opt
         .setName("filename")
-        .setDescription(
-          "Pick a descriptive filename (no ext like .png).",
-        )
+        .setDescription("Pick a descriptive filename (no ext like .png).")
         .setMinLength(4)
         .setMaxLength(60)
-        .setRequired(true)
+        .setRequired(true),
     )
     .addAttachmentOption((opt) =>
       opt
         .setName("image")
         .setDescription("The image file you will upload to the server.")
-        .setRequired(true)
+        .setRequired(true),
     ),
   execute: async (interaction) => {
     const nickname = interaction.options.getString("nickname", true);
@@ -114,20 +110,19 @@ const command: SlashCommand = {
       !contentTypes.includes(image.contentType ?? "")
     ) {
       await interaction.reply({
-        embeds: [embed({
-          title: "Sexy upload - Error!",
-          message: "Please provide valid parameters.",
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Sexy upload - Error!",
+            message: "Please provide valid parameters.",
+            kindOfEmbed: "error",
+          }),
+        ],
         ephemeral: true,
       });
       return;
     }
 
-    const nickDir = join(
-      dir,
-      nickname,
-    );
+    const nickDir = join(dir, nickname);
 
     let createDir = false;
     try {
@@ -143,12 +138,14 @@ const command: SlashCommand = {
       try {
         await Deno.lstat(join(nickDir, `${filename}.${filetype}`));
         await interaction.reply({
-          embeds: [embed({
-            title: "Sexy upload - Error!",
-            message:
-              "There already exists a file with this name on the server. Please choose a different name.",
-            kindOfEmbed: "error",
-          })],
+          embeds: [
+            embed({
+              title: "Sexy upload - Error!",
+              message:
+                "There already exists a file with this name on the server. Please choose a different name.",
+              kindOfEmbed: "error",
+            }),
+          ],
           ephemeral: true,
         });
         return;
@@ -162,12 +159,14 @@ const command: SlashCommand = {
     const resp = await fetch(image.url);
     if (!resp.ok || !resp.body || resp.status === 404) {
       await interaction.reply({
-        embeds: [embed({
-          title: "Sexy upload - Error!",
-          message:
-            "Something went wrong while downloading the file to the server.",
-          kindOfEmbed: "error",
-        })],
+        embeds: [
+          embed({
+            title: "Sexy upload - Error!",
+            message:
+              "Something went wrong while downloading the file to the server.",
+            kindOfEmbed: "error",
+          }),
+        ],
         ephemeral: true,
       });
       return;
@@ -177,8 +176,7 @@ const command: SlashCommand = {
       embeds: [
         embed({
           title: "Sexy upload - halfway there",
-          message:
-            `The image was uploaded sucessfully to discord. Currently downloading to the server.`,
+          message: `The image was uploaded sucessfully to discord. Currently downloading to the server.`,
           kindOfEmbed: "warning",
         }),
       ],
@@ -192,14 +190,13 @@ const command: SlashCommand = {
     await Deno.rename(
       join(nickDir, `${filename}.${filetype}.TMP`),
       join(nickDir, `${filename}.${filetype}`),
-    )
+    );
 
     await interaction.editReply({
       embeds: [
         embed({
           title: "Sexy upload - completed",
-          message:
-            `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${filetype}'. It is currently being downloaded to the server, it might take a few seconds before it is available in sexy carousel.`,
+          message: `'${image.name}' was uploaded successfully to '${nickname}'! The new filename is '${filename}.${filetype}'. It is currently being downloaded to the server, it might take a few seconds before it is available in sexy carousel.`,
           kindOfEmbed: "success",
         }),
       ],
@@ -207,17 +204,18 @@ const command: SlashCommand = {
 
     for (const channel of getSexyChannels()) {
       channel.send({
-	content: ROLES_PING,
+        content: ROLES_PING,
         embeds: [
           embed({
             title: `${nickname}`,
             message: `${filename}`,
-	    kindOfEmbed: "success"
-          })
-            .setImage(
-              new URL(`/${nickname}/${filename}.${filetype}`, config.SEXY_URL)
-                .toString(),
-            ),
+            kindOfEmbed: "success",
+          }).setImage(
+            new URL(
+              `/${nickname}/${filename}.${filetype}`,
+              config.SEXY_URL,
+            ).toString(),
+          ),
         ],
       });
     }
