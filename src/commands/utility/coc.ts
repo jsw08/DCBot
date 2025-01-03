@@ -6,23 +6,21 @@ import {
   ButtonStyle,
   codeBlock,
   EmbedBuilder,
-  MessageEditOptions,
-  MessagePayload,
-  MessagePayloadOption,
+  GuildEmoji,
   SlashCommandBuilder,
   time,
   userMention,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { config } from "$utils/config.ts";
-import { InteractionReplyOptions } from "discord.js";
 import { embed } from "$utils/embed.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { io } from "socket.io-client";
 import ms from "ms";
-import { generateTable } from "$utils/ascii.ts";
+import { decodeSubset, encodeSubset, generateTable } from "$utils/ascii.ts";
 import { ChatInputCommandInteraction } from "discord.js";
-import { ChannelType } from "discord.js";
+import { addSigListener } from "$utils/sighandler.ts";
+import { client } from "$/main.ts";
 
 // Constants
 const TOKEN = config.CLASHOFCODE_KEY;
@@ -73,25 +71,6 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
 type GameModes = (typeof GAMEMODES)[number][];
 type Languages = (typeof LANGUAGES)[number][];
 
-// Utils
-const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const encodeSubset = (subset: string[], base: string[]): string =>
-  subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
-const decodeSubset = (encodedString: string, base: string[]): Languages =>
-  [...encodedString].map((encodedChar) => {
-    const index = ENCODE_STRING.indexOf(encodedChar);
-    if (index === -1 || index > base.length - 1) {
-      console.error(
-        "COC: Error while decoding. Invalid char.",
-        encodedChar,
-        index,
-        base,
-      );
-      return base[0]; // COPING 101
-    }
-    return base[index];
-  });
-
 // Types
 type CommonClash = {
   handle: string;
@@ -100,6 +79,7 @@ type CommonClash = {
 };
 type CommonPlayerClash = {
   nickname: string;
+  userID: number;
 };
 type InGamePlayerClash = CommonPlayerClash & {
   completed: boolean;
@@ -176,8 +156,16 @@ type FetchClashAPI = CommonClashAPI & {
     } | { testSessionStatus: "READY" })
   )[];
 };
+type ClashEventManagerCallback = (
+  data: LobbyClash | InGameClash,
+  newMessage?: boolean,
+) => void | Promise<void>;
 
+const activeCocHandlers: {
+  [x: string]: ClashEventManagerCallback;
+} = {};
 const rateLimits: { [x: string]: number } = {};
+
 
 const codingameReq = (file: string, body: string) =>
   fetch(new URL(file, "https://www.codingame.com").toString(), {
@@ -241,6 +229,7 @@ const getClash = async (
         mode: clashData.mode,
         players: clashData.players.map((v) => ({
           nickname: v.codingamerNickname,
+          userID: v.codingamerId,
           rank: v.rank,
           score: v.score,
           completed: v.testSessionStatus === "COMPLETED",
@@ -252,6 +241,7 @@ const getClash = async (
         started: false,
         players: clashData.players.map((v) => ({
           nickname: v.codingamerNickname,
+          userID: v.codingamerId,
         })),
       }),
   };
@@ -282,15 +272,57 @@ const submitCode = async (
   );
 };
 
-const clashEventManager = async (
-  handle: string,
-  updateMessage: (data: [LobbyClash | InGameClash, boolean?]) => void,
-): Promise<undefined> => {
+const clashEventManagerCloseHandler = async () => {
+  for (const [handle, handler] of Object.entries(activeCocHandlers)) {
+    await handler({
+      handle,
+      langs: [],
+      modes: [],
+      players: [{ nickname: "loading...", userID: 0 }],
+      started: false,
+    }, true);
+  }
+};
+addSigListener(clashEventManagerCloseHandler);
+
+const clashEventManagerCallback = (
+  interaction: ButtonInteraction | ChatInputCommandInteraction,
+): ClashEventManagerCallback =>
+async (updatedClash, newMessage) => {
+  if (newMessage) {
+    activeCocHandlers[updatedClash.handle] = () => {};
+
+    await interaction.deleteReply();
+    await interaction.followUp({
+      embeds: [],
+      content: "# Please update this message by pressing the button below.",
+      components: [new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Primary)
+            .setLabel("Continue")
+            .setCustomId(
+              `${command.command.name}_continue_${updatedClash.handle}_${interaction.user.id}`,
+            ),
+        )],
+    });
+    return;
+  }
+
+  await interaction.editReply(
+    clashMessage(updatedClash, interaction.user.id),
+  );
+};
+const clashEventManager = async (handle: string): Promise<undefined> => {
   const clash = await getClash(handle);
   if (!clash) return;
+  if (!Object.hasOwn(activeCocHandlers, clash.handle)) return;
+  activeCocHandlers[clash.handle](clash);
 
-  updateMessage([clash]);
   if (clash.started && clash.finished) return;
+  const newMessageInterval = setInterval(() => {
+    activeCocHandlers[clash.handle](clash, true);
+  }, 10 * 1000 * 60);
 
   const socket = io("https://push-community.codingame.com", {
     withCredentials: true,
@@ -322,7 +354,8 @@ const clashEventManager = async (
           return;
         }
 
-        const justStarted = clashData.started && !started && !clashData.finished;
+        const justStarted = clashData.started && !started &&
+          !clashData.finished;
         if (justStarted) {
           started = true;
           await submitCode(
@@ -332,7 +365,7 @@ const clashEventManager = async (
           );
         }
 
-        updateMessage([{
+        activeCocHandlers[handle]({
           handle,
           langs: clashData.programmingLanguages,
           modes: clashData.modes,
@@ -348,15 +381,17 @@ const clashEventManager = async (
                 duration: 0,
                 rank: v.r,
                 score: v.d,
+                userID: v.id,
               })),
             }
             : {
               started: false,
               players: clashData.minifiedPlayers.map((v) => ({
                 nickname: v.k,
+                userID: v.id,
               })),
             }),
-        }, justStarted]);
+        });
 
         if (clashData.finished) socket.close();
         break;
@@ -367,7 +402,7 @@ const clashEventManager = async (
         const clashData = await getClash(handle);
         if (!clashData) return;
 
-        updateMessage([clashData]);
+        activeCocHandlers[clashData.handle](clashData);
 
         if (clashData.started && clashData.finished) socket.close();
         break;
@@ -384,6 +419,9 @@ const clashEventManager = async (
       return;
     }
 
+    clearInterval(newMessageInterval);
+
+    delete activeCocHandlers[clash.handle];
     socket.close();
   });
 
@@ -533,6 +571,7 @@ const createClashManager = async (
       ],
       ephemeral: true,
     });
+    return;
   }
 
   rateLimits[interaction.channelId] = setTimeout(
@@ -559,25 +598,20 @@ const createClashManager = async (
     return;
   }
 
-  //await interaction.deferReply();
-  let message = await interaction.reply(
-    clashMessage({
-      handle: clash,
-      langs,
-      modes,
-      players: [{ nickname: "loading..." }],
-      started: false,
-    }, interaction.user.id)
+  await interaction.reply(
+    {
+      ...clashMessage({
+        handle: clash,
+        langs,
+        modes,
+        players: [{ nickname: "loading...", userID: 0 }],
+        started: false,
+      }, interaction.user.id),
+    },
   );
 
-  await clashEventManager(clash, async (data) => {
-    const [messageData, newMessage] = data;
-    // if (newMessage) {
-    //   await message.delete()
-    //   message = await interaction.followUp(clashMessage(messageData, interaction.user.id))
-    // }
-    await message.edit(clashMessage(messageData, interaction.user.id));
-  });
+  activeCocHandlers[clash] = clashEventManagerCallback(interaction);
+  await clashEventManager(clash);
 };
 
 const command: SlashCommand = {
@@ -673,12 +707,12 @@ const command: SlashCommand = {
   },
 
   button: async (interaction) => {
-    const id = interaction.customId.split("_");
-    const command = id[1];
+    const params = interaction.customId.split("_");
+    const command = params[1];
 
     switch (command) {
       case "start": {
-        if (id[2] !== interaction.user.id) {
+        if (params[2] !== interaction.user.id) {
           interaction.reply({
             embeds: [setCodinGameStyles(accessDeniedEmbed, false)],
             ephemeral: true,
@@ -686,7 +720,7 @@ const command: SlashCommand = {
           return;
         }
 
-        const result = await startClash(id[3]);
+        const result = await startClash(params[3]);
         await interaction.reply({
           embeds: [
             setCodinGameStyles(
@@ -704,10 +738,61 @@ const command: SlashCommand = {
         });
         break;
       }
+      case "continue": {
+        const notExist = () =>
+          interaction.reply({
+            embeds: [embed({
+              kindOfEmbed: "error",
+              title: "Clash of Code - ERROR",
+              message: "This clash does not exist anymore.",
+            })],
+            ephemeral: true,
+          });
+
+        if (!params[3]) {
+          await interaction.reply({
+            embeds: [embed({
+              kindOfEmbed: "error",
+              title: "Clash of Code - ERROR",
+              message:
+                "Internal error.\n-# This button doesn't have an owner parameter.",
+            })],
+            ephemeral: true,
+          });
+        }
+
+        const clash = await getClash(params[2]);
+        if (!clash) {
+          await notExist();
+          console.log(clash);
+          return;
+        }
+        console.log(clash);
+        if (clash.started && clash.finished) {
+          await interaction.update({
+            content: "",
+            ...clashMessage(clash, params[3]),
+          });
+          return;
+        }
+
+        await interaction.update({
+          content: "",
+          ...clashMessage(clash, params[3]),
+        });
+        activeCocHandlers[clash.handle] = clashEventManagerCallback(
+          interaction,
+        );
+
+        if (!Object.hasOwn(activeCocHandlers, params[2])) {
+          await clashEventManager(clash.handle);
+        }
+        break;
+      }
       case "restart": {
         createClashManager(
-          decodeSubset(id[3], LANGUAGES),
-          decodeSubset(id[2], GAMEMODES),
+          decodeSubset(params[3], LANGUAGES),
+          decodeSubset(params[2], GAMEMODES),
           interaction,
         );
 

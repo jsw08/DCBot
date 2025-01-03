@@ -33,3 +33,21 @@ export const generateTable = (columns: number, items: string[]): string => {
     headFootSeparator("╚", "╩", "╝"),
   ].join("\n");
 };
+
+const ENCODE_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+export const encodeSubset = (subset: string[], base: string[]): string =>
+  subset.map((v) => ENCODE_STRING.at(base.indexOf(v))).join("");
+export const decodeSubset = (encodedString: string, base: string[]): string[] =>
+  [...encodedString].map((encodedChar) => {
+    const index = ENCODE_STRING.indexOf(encodedChar);
+    if (index === -1 || index > base.length - 1) {
+      console.error(
+        "COC: Error while decoding. Invalid char.",
+        encodedChar,
+        index,
+        base,
+      );
+      return base[0]; // COPING 101
+    }
+    return base[index];
+  });
