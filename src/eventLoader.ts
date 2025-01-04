@@ -15,9 +15,15 @@ const main = async (client: Client) => {
 
     const event: BotEvent = (await import(`./events/${file.name}`)).default;
     if (event.once) {
-      client.once(event.name, (...args) => event.execute(...args));
+      client.once(
+        event.name,
+        (...args) => event.execute(...args),
+      );
     } else {
-      client.on(event.name, (...args) => event.execute(...args));
+      client.on(
+        event.name,
+        (...args) => event.execute(...args),
+      );
     }
   }
   console.log("Loaded all events.");

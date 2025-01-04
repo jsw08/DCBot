@@ -20,8 +20,7 @@ export const usernameAutocomplete = async (
   } else if (focusedValue === "") {
     options = sexymfs.slice(0, amount);
   } else {
-    options = sexymfs
-      .filter((v) => v.startsWith(focusedValue))
+    options = sexymfs.filter((v) => v.startsWith(focusedValue))
       .splice(0, amount);
   }
 

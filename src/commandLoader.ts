@@ -41,11 +41,13 @@ declare module "discord.js" {
 const main = async (client: Client) => {
   const commandDir = join(import.meta.dirname!, "./commands/");
 
-  for await (const commandFile of walk(commandDir, {
-    includeDirs: false,
-    includeSymlinks: false,
-    exts: [".ts"],
-  })) {
+  for await (
+    const commandFile of walk(commandDir, {
+      includeDirs: false,
+      includeSymlinks: false,
+      exts: [".ts"],
+    })
+  ) {
     const command: SlashCommand = (await import(`file:///${commandFile.path}`))
       .default;
 
@@ -62,8 +64,8 @@ const main = async (client: Client) => {
         body: client.slashCommands.map((v) => {
           const commandBuilder = v.command.toJSON();
           commandBuilder.contexts = [
-            ...((v.inGuild ?? true) ? [0] : []),
-            ...((v.inDm ?? true) ? [1, 2] : []),
+            ...(v.inGuild ?? true ? [0] : []),
+            ...(v.inDm ?? true ? [1, 2] : []),
           ];
 
           return commandBuilder;

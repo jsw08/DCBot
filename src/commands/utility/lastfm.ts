@@ -34,7 +34,8 @@ const getCurrentlyPlayingTrack = async (
   username: string,
   apiKey: string,
 ): Promise<Track | boolean> => {
-  const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${apiKey}&format=json&limit=1`;
+  const url =
+    `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${apiKey}&format=json&limit=1`;
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -45,9 +46,7 @@ const getCurrentlyPlayingTrack = async (
 
     const tracks = data.recenttracks.track;
     if (
-      tracks.length === 0 ||
-      !tracks[0] ||
-      !tracks[0]["@attr"] ||
+      tracks.length === 0 || !tracks[0] || !tracks[0]["@attr"] ||
       !tracks[0]["@attr"].nowplaying
     ) {
       return true;
@@ -71,7 +70,8 @@ const checkLastFmUserExists = async (
   username: string,
   apiKey: string,
 ): Promise<boolean> => {
-  const url = `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${username}&api_key=${apiKey}&format=json`;
+  const url =
+    `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${username}&api_key=${apiKey}&format=json`;
 
   try {
     const response = await fetch(url);
@@ -101,28 +101,22 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
   );
 
   interaction.reply({
-    embeds: [
-      embed({
-        title: "LastFM",
-        message: `LastFM username set to '${username}'.`,
-        kindOfEmbed: "success",
-      }),
-    ],
+    embeds: [embed({
+      title: "LastFM",
+      message: `LastFM username set to '${username}'.`,
+      kindOfEmbed: "success",
+    })],
     ephemeral: true,
   });
 };
 const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   const inputUsername = interaction.options.getString("username");
-  const username =
-    inputUsername ??
-    (() => {
-      const result = db
-        .prepare(
-          `SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`,
-        )
-        .get<{ lastfm_username: string }>({ discord_id: interaction.user.id });
-      return (result ?? { lastfm_username: undefined }).lastfm_username;
-    })();
+  const username = inputUsername ?? (() => {
+    const result = db.prepare(
+      `SELECT lastfm_username FROM users WHERE discord_id = :discord_id LIMIT 1;`,
+    ).get<{ lastfm_username: string }>({ discord_id: interaction.user.id });
+    return (result ?? { lastfm_username: undefined }).lastfm_username;
+  })();
 
   if (!username) {
     await interaction.reply({ embeds: [noUserEmbed], ephemeral: true });
@@ -136,13 +130,11 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
   if (typeof np === "boolean") {
     await interaction.reply({
       embeds: [
-        !np
-          ? noUserEmbed
-          : embed({
-              title: `LastFM • ${username}`,
-              message: "It's quiet here.\n-# You aren't playing any music.",
-              kindOfEmbed: "warning",
-            }),
+        !np ? noUserEmbed : embed({
+          title: `LastFM • ${username}`,
+          message: "It's quiet here.\n-# You aren't playing any music.",
+          kindOfEmbed: "warning",
+        }),
       ],
     });
   } else {
@@ -155,7 +147,7 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
             name: `• Now Playing`,
             iconURL: inputUsername
               ? lastFMPic
-              : (interaction.user.avatarURL() ?? lastFMPic),
+              : interaction.user.avatarURL() ?? lastFMPic,
           })
           .setTitle(np.title)
           .setURL(np.url)
@@ -180,8 +172,8 @@ const command: SlashCommand = {
           opts
             .setName("username")
             .setDescription("Your lastFM username.")
-            .setRequired(true),
-        ),
+            .setRequired(true)
+        )
     )
     .addSubcommand((subc) =>
       subc
@@ -190,8 +182,10 @@ const command: SlashCommand = {
           "Gets the current playing song of you or the specified player.",
         )
         .addStringOption((opts) =>
-          opts.setName("username").setDescription("A lastfm username."),
-        ),
+          opts
+            .setName("username")
+            .setDescription("A lastfm username.")
+        )
     ),
   execute: (interaction) => {
     const subc = interaction.options.getSubcommand(true);

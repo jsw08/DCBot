@@ -20,7 +20,8 @@ const command: SlashCommand = {
       .setStyle(ButtonStyle.Danger)
       .setLabel("Delete")
       .setCustomId(`ping_${interaction.user.id}_delete`);
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(button);
 
     interaction.reply({
       embeds: [embed({ message: "Pong!" })],

@@ -14,8 +14,7 @@ export function checkAccess(
   commandScope?: Permissions | null,
 ): boolean {
   if (
-    config.PRIVATE !== "1" ||
-    config.PRIVATE_USERS.split(",").includes(userId)
+    config.PRIVATE !== "1" || config.PRIVATE_USERS.split(",").includes(userId)
   ) {
     return true;
   }
@@ -23,8 +22,8 @@ export function checkAccess(
 
   return commandScope
     ? commandScope === "everywhere" ||
-        (commandScope === "select_few" &&
-          config.PRIVATE_GUILDS.split(",").includes(guildId ?? ""))
+      (commandScope === "select_few" &&
+        config.PRIVATE_GUILDS.split(",").includes(guildId ?? ""))
     : false;
 }
 

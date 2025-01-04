@@ -34,7 +34,7 @@ const command: SlashCommand = {
         .setDescription(
           "Reminder date (CET unless specified). Accepts ISO 8601 and English natural language formats.",
         )
-        .setRequired(true),
+        .setRequired(true)
     )
     .addStringOption((opts) =>
       opts
@@ -51,7 +51,7 @@ const command: SlashCommand = {
           { name: "long date with short time", value: "f" },
           { name: "long date with day of week and short time", value: "F" },
           { name: "relative", value: "R" },
-        ]),
+        ])
     ),
   execute: (interaction) => {
     const type = interaction.options.getString("type", true);
@@ -65,12 +65,10 @@ const command: SlashCommand = {
     const dcTimestamp = `<t:${Math.floor(date.getTime() / 1000)}:${type}>`;
     const bt = "```"; // backticks
     interaction.reply({
-      embeds: [
-        embed({
-          title: "Timestamp generator",
-          message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`,
-        }),
-      ],
+      embeds: [embed({
+        title: "Timestamp generator",
+        message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`,
+      })],
       ephemeral: true,
     });
   },

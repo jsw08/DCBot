@@ -25,13 +25,12 @@ const codeReplyOptions = (
     .join("\n");
 
   return {
-    embeds: [
-      embed({
-        title: "Typescript interpreter.",
-        kindOfEmbed: "success",
-        message: `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
-      }),
-    ],
+    embeds: [embed({
+      title: "Typescript interpreter.",
+      kindOfEmbed: "success",
+      message:
+        `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
+    })],
   };
 };
 const codeHandler = async (
@@ -53,25 +52,23 @@ const codeHandler = async (
   try {
     if (showOutput === false) {
       await interaction.deleteReply();
-      results.push(...(await evalCode(code)));
+      results.push(...await evalCode(code));
     } else {
-      results.push(...(await evalCode(code)));
+      results.push(...await evalCode(code));
       await interaction.followUp(codeReplyOptions(code, results));
     }
   } catch (e) {
     const err = e as Error;
     await interaction.followUp({
-      embeds: [
-        embed({
-          title: "Error!",
-          message: `\`\`\`js\n${err.name}: ${err.message}\nLine: ${
-            err.stack
-              ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
-              : ""
-          }\`\`\``,
-          kindOfEmbed: "error",
-        }),
-      ],
+      embeds: [embed({
+        title: "Error!",
+        message: `\`\`\`js\n${err.name}: ${err.message}\nLine: ${
+          err.stack
+            ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
+            : ""
+        }\`\`\``,
+        kindOfEmbed: "error",
+      })],
       components: [
         delButtonRow(`${command.command.name}_delete_${interaction.user.id}`),
       ],
@@ -85,10 +82,8 @@ const codeModal = (output: boolean | null) => {
     .setLabel("Typescript code.")
     .setStyle(TextInputStyle.Paragraph);
 
-  const inputRow =
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-      codeInput,
-    );
+  const inputRow = new ActionRowBuilder<ModalActionRowComponentBuilder>()
+    .addComponents(codeInput);
 
   return new ModalBuilder()
     .setTitle("Typescript editor.")
@@ -101,14 +96,14 @@ const commonCommands = (
   reqCmds?: (
     subc: SlashCommandSubcommandBuilder,
   ) => SlashCommandSubcommandBuilder,
-): SlashCommandSubcommandBuilder =>
-  (reqCmds ? reqCmds(subc) : subc).addBooleanOption((opts) =>
+): SlashCommandSubcommandBuilder => ((reqCmds ? reqCmds(subc) : subc)
+  .addBooleanOption((opts) =>
     opts
       .setName("output")
       .setDescription(
         "Display your input and the command console.logs in chat.",
-      ),
-  );
+      )
+  ));
 
 const command: SlashCommand = {
   inDm: true,
@@ -119,20 +114,20 @@ const command: SlashCommand = {
     .setDescription("Runs the provided javascript code.")
     .addSubcommand((subc) =>
       commonCommands(subc, (subc) =>
-        subc.addStringOption((opts) =>
-          opts
-            .setName("code")
-            .setDescription("Write your javascript code here.")
-            .setRequired(true),
-        ),
-      )
+        subc
+          .addStringOption((opts) =>
+            opts
+              .setName("code")
+              .setDescription("Write your javascript code here.")
+              .setRequired(true)
+          ))
         .setName("inline")
-        .setDescription("For your beautiful ts-oneliners."),
+        .setDescription("For your beautiful ts-oneliners.")
     )
     .addSubcommand((subc) =>
       commonCommands(subc)
         .setName("multiline")
-        .setDescription("For your longer codepieces."),
+        .setDescription("For your longer codepieces.")
     ),
 
   execute: async (interaction) => {
