@@ -9,7 +9,7 @@ const closeListener = () => {
   console.log("Closing DB");
   db.close();
 };
-addSigListener(closeListener)
+addSigListener(closeListener);
 
 console.log("Initialised DB");
 export default db;

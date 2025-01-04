@@ -6,7 +6,7 @@ export const generateTable = (columns: number, items: string[]): string => {
       reduced[columnIndex] = Math.max(reduced[columnIndex], current.length);
       return reduced;
     },
-    new Array(columns).fill(0)
+    new Array(columns).fill(0),
   );
 
   const rows: string[] = items
@@ -17,9 +17,11 @@ export const generateTable = (columns: number, items: string[]): string => {
     }, [])
     .map((item) => {
       const paddedRow = [...item, ...Array(columns - item.length).fill("")];
-      return `║ ${paddedRow
-        .map((value, index) => value.padEnd(columnWidths[index], " "))
-        .join(" ║ ")} ║`;
+      return `║ ${
+        paddedRow
+          .map((value, index) => value.padEnd(columnWidths[index], " "))
+          .join(" ║ ")
+      } ║`;
     });
 
   const headFootSeparator = (begin: string, separate: string, end: string) =>

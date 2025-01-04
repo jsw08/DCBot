@@ -21,9 +21,13 @@ type ConfigKeys = typeof configKeys[number];
 export const config: Record<ConfigKeys, string> = Object
   .fromEntries(
     configKeys.map((key) => {
-      const env = Deno.env.get(key)
-      if (!env) throw new Error(`Please configure your dotenv correctly. Missing: ${key}`);
+      const env = Deno.env.get(key);
+      if (!env) {
+        throw new Error(
+          `Please configure your dotenv correctly. Missing: ${key}`,
+        );
+      }
 
-      return [key, env]
+      return [key, env];
     }),
   ) as Record<ConfigKeys, string>;

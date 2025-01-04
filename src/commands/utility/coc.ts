@@ -155,7 +155,9 @@ type GameModes = (typeof GAMEMODES)[number][];
 type Languages = (typeof LANGUAGES)[number][];
 
 type ClashEventManagerHandler = (
-  data: ((LobbyClash | InGameClash) & {isMessage?: false}) | (BaseMessageOptions & {isMessage: true}),
+  data:
+    | ((LobbyClash | InGameClash) & { isMessage?: false })
+    | (BaseMessageOptions & { isMessage: true }),
   newMessage?: boolean,
 ) => void | Promise<void>;
 
@@ -290,15 +292,15 @@ const newMessageTimeout = (clash: LobbyClash | InGameClash) =>
     } catch (e) {
       if (!(e instanceof TypeError)) throw e;
     }
-  },  10 * 1000 * 60);
+  }, 10 * 1000 * 60);
 
 const clashEventManagerCallback = (
   interaction: ButtonInteraction | ChatInputCommandInteraction,
 ): ClashEventManagerHandler =>
 async (data, newMessage) => {
   if (data.isMessage) {
-      interaction.editReply(data)
-    return
+    interaction.editReply(data);
+    return;
   }
   if (newMessage) {
     activeClashHandlers[data.handle] = () => {};
@@ -306,8 +308,9 @@ async (data, newMessage) => {
     await interaction.deleteReply();
     await interaction.followUp({
       embeds: [setCodinGameStyles(embed({
-	  message: "I'll be unable to edit this message soon, due to a [Discord limitation](<https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback>). Please press the button to continue showing a live-feed of the clash."
-	}))],
+        message:
+          "I'll be unable to edit this message soon, due to a [Discord limitation](<https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback>). Please press the button to continue showing a live-feed of the clash.",
+      }))],
       components: [new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
           new ButtonBuilder()
@@ -335,13 +338,24 @@ const clashEventManager = async (handle: string): Promise<undefined> => {
   const newMessage = newMessageTimeout(clash);
   const cancelClash = setInterval(async () => {
     const clash = await getClash(handle);
-    if (!clash || !activeClashHandlers[handle] || clash.started) {clearInterval(cancelClash); return};
+    if (!clash || !activeClashHandlers[handle] || clash.started) {
+      clearInterval(cancelClash);
+      return;
+    }
     if (clash.players.length > 1) return;
 
-    activeClashHandlers[handle]({isMessage: true, content: "", components: [], embeds: [setCodinGameStyles(embed({
-      kindOfEmbed: "warning",
-      message: "This clash has timed out, please create a new one."
-    }), false)]})
+    activeClashHandlers[handle]({
+      isMessage: true,
+      content: "",
+      components: [],
+      embeds: [setCodinGameStyles(
+        embed({
+          kindOfEmbed: "warning",
+          message: "This clash has timed out, please create a new one.",
+        }),
+        false,
+      )],
+    });
     disconnect();
   }, 5 * 1000 * 60);
 
@@ -421,7 +435,7 @@ const clashEventManager = async (handle: string): Promise<undefined> => {
             }),
         });
 
-        if (clashData.finished) disconnect()
+        if (clashData.finished) disconnect();
         break;
       }
       case "updateClash": {
@@ -431,8 +445,8 @@ const clashEventManager = async (handle: string): Promise<undefined> => {
         if (!clashData) return;
         activeClashHandlers[clashData.handle](clashData);
 
-        if (clashData.started && clashData.finished) disconnect()        
-	break;
+        if (clashData.started && clashData.finished) disconnect();
+        break;
       }
     }
   });
@@ -447,7 +461,7 @@ const setCodinGameStyles = (
       "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
     url: "https://www.codingame.com",
     name: "CodinGame",
-  })
+  });
   if (color) emb.setColor("#f2bb13");
   return emb;
 };
@@ -654,14 +668,16 @@ const command: SlashCommand = {
     ),
 
   execute: async (interaction) => {
-    const modes: GameModes = interaction.options.getString("gamemodes")?.split(",") ?? ["SHORTEST"]
-    const langs: Languages = interaction.options.getString("languages")?.split(",")
-      .reduce<Languages>((reduced, current) => {
-        const index = LOWERCASE_LANGUAGES.indexOf(current.toLowerCase());
-        if (index !== -1) reduced.push(LANGUAGES[index]);
+    const modes: GameModes =
+      interaction.options.getString("gamemodes")?.split(",") ?? ["SHORTEST"];
+    const langs: Languages =
+      interaction.options.getString("languages")?.split(",")
+        .reduce<Languages>((reduced, current) => {
+          const index = LOWERCASE_LANGUAGES.indexOf(current.toLowerCase());
+          if (index !== -1) reduced.push(LANGUAGES[index]);
 
-        return reduced;
-      }, []) ?? [];
+          return reduced;
+        }, []) ?? [];
 
     await createClashManager(langs, modes, interaction);
   },
@@ -745,7 +761,7 @@ const command: SlashCommand = {
           ],
           ephemeral: true,
         });
-	setTimeout(() => interaction.deleteReply(), 2000)
+        setTimeout(() => interaction.deleteReply(), 2000);
         break;
       }
       case "continue": {
@@ -776,19 +792,27 @@ const command: SlashCommand = {
           await notExist();
           return;
         }
-	if (!clash.players.find(v => v.userID === USERID)) {
-	  await interaction.update({
-	    content: "",
-	    embeds: [setCodinGameStyles(embed({
-	      kindOfEmbed: "error",
-	      message: "Unable to manage this game anymore. I probably disconnected before the game started."
-	    }), false)],
-	    components: []
-	  });
-	  return
-	}
+        if (!clash.players.find((v) => v.userID === USERID)) {
+          await interaction.update({
+            content: "",
+            embeds: [setCodinGameStyles(
+              embed({
+                kindOfEmbed: "error",
+                message:
+                  "Unable to manage this game anymore. I probably disconnected before the game started.",
+              }),
+              false,
+            )],
+            components: [],
+          });
+          return;
+        }
 
-	await interaction.update({content: "# Loading... 💫", embeds: [], components: []}) // Sadly, update is unable to show emojis properly, kind of a hacky fix.
+        await interaction.update({
+          content: "# Loading... 💫",
+          embeds: [],
+          components: [],
+        }); // Sadly, update is unable to show emojis properly, kind of a hacky fix.
         await interaction.editReply({
           content: "",
           ...clashMessage(clash, params[3]),

@@ -19,7 +19,7 @@ import { roleMention } from "discord.js";
 const ROLES_PING = config.SEXY_LOG_ROLES
   .split(",")
   .map(roleMention)
-  .join(", ")
+  .join(", ");
 
 const getSexyChannels = (): TextChannel[] => {
   const channels: TextChannel[] = [];
@@ -192,7 +192,7 @@ const command: SlashCommand = {
     await Deno.rename(
       join(nickDir, `${filename}.${filetype}.TMP`),
       join(nickDir, `${filename}.${filetype}`),
-    )
+    );
 
     await interaction.editReply({
       embeds: [
@@ -207,12 +207,12 @@ const command: SlashCommand = {
 
     for (const channel of getSexyChannels()) {
       channel.send({
-	content: ROLES_PING,
+        content: ROLES_PING,
         embeds: [
           embed({
             title: `${nickname}`,
             message: `${filename}`,
-	    kindOfEmbed: "success"
+            kindOfEmbed: "success",
           })
             .setImage(
               new URL(`/${nickname}/${filename}.${filetype}`, config.SEXY_URL)
