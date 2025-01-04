@@ -183,7 +183,7 @@ const createPrivateClash = async (
     JSON.stringify([USERID, langs, gamemode]),
   );
   if (!req.ok) {
-    console.error("Coc: Error creating private clash.", req.statusText);
+    console.error("Coc: Error creating private clash.", Deno.inspect(req));
     return undefined;
   }
   const publicHandle = (await req.json()).publicHandle;
@@ -199,7 +199,7 @@ const startClash = async (clash: string) => {
     JSON.stringify([USERID, clash]),
   );
   if (!req.ok || req.status !== 204) {
-    console.error(`Error starting game. ${JSON.stringify(req)}`);
+    console.error(`Error starting game. ${Deno.inspect(req)}`);
     return false;
   }
   return true;
@@ -290,7 +290,7 @@ const newMessageTimeout = (clash: LobbyClash | InGameClash) =>
     } catch (e) {
       if (!(e instanceof TypeError)) throw e;
     }
-  }, 10 * 1000 * 60);
+  },  10 * 1000 * 60);
 
 const clashEventManagerCallback = (
   interaction: ButtonInteraction | ChatInputCommandInteraction,
@@ -305,8 +305,9 @@ async (data, newMessage) => {
 
     await interaction.deleteReply();
     await interaction.followUp({
-      embeds: [],
-      content: "# Please update this message by pressing the button below.",
+      embeds: [setCodinGameStyles(embed({
+	  message: "I'll be unable to edit this message soon, due to a [Discord limitation](<https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback>). Please press the button to continue showing a live-feed of the clash."
+	}))],
       components: [new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
           new ButtonBuilder()
@@ -446,7 +447,7 @@ const setCodinGameStyles = (
       "https://static.codingame.com/assets/apple-touch-icon-152x152-precomposed.300c3711.png",
     url: "https://www.codingame.com",
     name: "CodinGame",
-  });
+  })
   if (color) emb.setColor("#f2bb13");
   return emb;
 };
@@ -653,7 +654,7 @@ const command: SlashCommand = {
     ),
 
   execute: async (interaction) => {
-    const modes: GameModes = interaction.options.getString("gamemodes")?.split(",") ?? ["Shortest"]
+    const modes: GameModes = interaction.options.getString("gamemodes")?.split(",") ?? ["SHORTEST"]
     const langs: Languages = interaction.options.getString("languages")?.split(",")
       .reduce<Languages>((reduced, current) => {
         const index = LOWERCASE_LANGUAGES.indexOf(current.toLowerCase());
@@ -744,6 +745,7 @@ const command: SlashCommand = {
           ],
           ephemeral: true,
         });
+	setTimeout(() => interaction.deleteReply(), 2000)
         break;
       }
       case "continue": {
