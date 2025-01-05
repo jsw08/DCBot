@@ -151,8 +151,8 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   .slice(1)
   .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
-type GameModes = (typeof GAMEMODES)[number][];
-type Languages = (typeof LANGUAGES)[number][];
+export type GameModes = (typeof GAMEMODES)[number][];
+export type Languages = (typeof LANGUAGES)[number][];
 
 type ClashEventManagerHandler = (
   data:

@@ -1,10 +1,10 @@
 import { config } from "$utils/config.ts";
 import { io, Socket } from "socket.io-client";
-const TOKEN = config.CLASHOFCODE_KEY;
-const USERID = +TOKEN.slice(0, 7);
+export const TOKEN = config.CLASHOFCODE_KEY;
+export const USERID = +TOKEN.slice(0, 7);
 
-const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
-const LANGUAGES = [
+export const GAMEMODES = ["FASTEST", "SHORTEST", "REVERSE"];
+export const LANGUAGES = [
   "Bash",
   "C",
   "C#",
@@ -33,8 +33,8 @@ const LANGUAGES = [
   "TypeScript",
   "VB.NET",
 ];
-type GameMode = (typeof LANGUAGES)[number];
-type Language = (typeof LANGUAGES)[number];
+export type GameMode = (typeof LANGUAGES)[number];
+export type Language = (typeof LANGUAGES)[number];
 
 type CommonClash = {
   handle: string;
@@ -154,21 +154,11 @@ const notOk = (res: Response) => !res.ok || res.status !== 200;
 
 export enum ClashErrorCodes {
   LobbyTimedOut,
-  SocketTimedOut,
-  StartError,
-  SubmitError,
-  ClashNotFound,
   Disconnected,
 }
-type Handler = (clash: Clash | ClashErrorCodes) => void;
+export type Handler = (clash: Clash | ClashErrorCodes) => void;
 export class Clash {
-  #clash: LobbyClash | InGameClash = {
-    handle: "",
-    langs: [],
-    modes: [],
-    players: [],
-    started: false,
-  };
+  declare private clash: LobbyClash | InGameClash
   declare public handler: Handler;
 
   declare private socket: Socket;
@@ -178,7 +168,10 @@ export class Clash {
   }
 
   get data() {
-    return this.#clash;
+    return this.clash;
+  }
+  get connected() {
+    return this.socket.connected;
   }
 
   public static async createNew(
@@ -199,7 +192,7 @@ export class Clash {
 
     const data: CreateClashAPI | undefined = await req.json();
     if (!data) {
-      console.error("Coc: data.", req);
+      console.error("Coc: No data.", req);
       return undefined;
     }
     await that.populate({
@@ -225,9 +218,9 @@ export class Clash {
   }
 
   private async populate(clash: LobbyClash | InGameClash) {
-    this.#clash = clash;
+    this.clash = clash;
 
-    if (this.#clash.started && this.#clash.finished) return false;
+    if (this.clash.started && this.clash.finished) return false;
 
     let socketTimeoutResolve: (value: PromiseLike<void> | void) => void;
     const socketTimeout = new Promise<void>((resolve, reject) => {
@@ -245,7 +238,7 @@ export class Clash {
     this.socket.once("connect", () => {
       socketTimeoutResolve();
       this.socket.emit("register", USERID);
-      this.socket.emit("joinGroup", `clashLobby_${this.#clash.handle}`);
+      this.socket.emit("joinGroup", `clashLobby_${this.clash.handle}`);
     });
 
     try {
@@ -256,7 +249,7 @@ export class Clash {
 
     this.cancelClashInterval = setInterval(
       () => {
-        if (this.#clash.started) clearInterval(this.cancelClashInterval);
+        if (this.clash.started) clearInterval(this.cancelClashInterval);
 
         this.disconnect();
       },
@@ -272,11 +265,11 @@ export class Clash {
     this.handler(ClashErrorCodes.Disconnected);
   }
   public async start(): Promise<boolean> {
-    if (this.#clash.started) return false;
+    if (this.clash.started) return false;
 
     const req = await codingameReq(
       "/services/ClashOfCode/startClashByHandle",
-      JSON.stringify([USERID, this.#clash.handle]),
+      JSON.stringify([USERID, this.clash.handle]),
     );
 
     const notOk = !req.ok || req.status !== 204;
@@ -288,12 +281,12 @@ export class Clash {
     code: string,
     language?: (typeof this)["data"]["langs"][number],
   ): Promise<boolean> {
-    if (language && !this.#clash.langs.includes(language)) return true;
+    if (language && !this.clash.langs.includes(language)) return true;
     else language = "Ruby";
 
     const testSesh = await codingameReq(
       "/services/ClashOfCode/startClashTestSession",
-      JSON.stringify([USERID, this.#clash.handle]),
+      JSON.stringify([USERID, this.clash.handle]),
     );
     if (notOk(testSesh)) return true;
 
@@ -308,7 +301,7 @@ export class Clash {
     );
     const codeSubmit = await codingameReq(
       "/services/ClashOfCode/shareCodinGamerSolutionByHandle",
-      JSON.stringify([USERID, this.#clash.handle]),
+      JSON.stringify([USERID, this.clash.handle]),
     );
     if (notOk(codeSubmit)) return true;
 
@@ -317,13 +310,13 @@ export class Clash {
   public async fetch(handle?: string): Promise<this["data"] | undefined> {
     const req = await codingameReq(
       "/services/ClashOfCode/findClashByHandle",
-      JSON.stringify([handle ?? this.#clash.handle]),
+      JSON.stringify([handle ?? this.clash.handle]),
     );
     if (notOk(req)) return undefined;
 
     const clashData: FetchClashAPI = await req.json();
     const data: this["data"] = {
-      handle: this.#clash.handle,
+      handle: this.clash.handle,
       langs: clashData.programmingLanguages,
       modes: clashData.modes,
       ...(clashData.started
@@ -350,13 +343,13 @@ export class Clash {
           })),
         }),
     };
-    if (!handle) this.#clash = data;
+    if (!handle) this.clash = data;
 
     return handle ? data : this.data;
   }
 
   private setupSocketEventHandlers() {
-    let started = this.#clash.started;
+    let started = this.clash.started;
 
     this.socket.on("clash", async (data) => {
       if (!data.status) return;
@@ -364,14 +357,14 @@ export class Clash {
       switch (data.status) {
         case "updateCurrentClash": {
           if (!data.clashDto) {
-            console.log("COC: No clashDto, ", data, this.#clash);
+            console.log("COC: No clashDto, ", data, this.clash);
             return;
           }
 
           const clashData: UpdateClashAPI = JSON.parse(data.clashDto);
           if (
             !clashData.publicHandle ||
-            clashData.publicHandle !== this.#clash.handle
+            clashData.publicHandle !== this.clash.handle
           ) {
             console.log("COC: Update clash handle mismatch");
             return;
@@ -385,15 +378,15 @@ export class Clash {
             started = true;
             await this.submit(
               "// thank you :3",
-              this.#clash.langs[0].includes("Ruby") ||
-                this.#clash.langs.length < 1
+              this.clash.langs[0].includes("Ruby") ||
+                this.clash.langs.length < 1
                 ? "Ruby"
-                : this.#clash.langs[0],
+                : this.clash.langs[0],
             );
           }
 
-          this.#clash = {
-            handle: this.#clash.handle,
+          this.clash = {
+            handle: this.clash.handle,
             langs: clashData.programmingLanguages,
             modes: clashData.modes,
             started: clashData.started,
@@ -425,7 +418,7 @@ export class Clash {
           break;
         }
         case "updateClash": {
-          if (!data.clashHandle || data.clashHandle !== this.#clash.handle) {
+          if (!data.clashHandle || data.clashHandle !== this.clash.handle) {
             return;
           }
 
@@ -440,9 +433,3 @@ export class Clash {
     });
   }
 }
-
-//const test = await Clash.createNew(["Ruby"], ["SHORTEST"], v => console.log(typeof(v) === "number" ? v : v.data))
-//console.log(test?.data)
-//
-//setTimeout(() => {console.log("halfway before starting")}, 10000)
-//setTimeout(() => {test?.start()}, 20000)
