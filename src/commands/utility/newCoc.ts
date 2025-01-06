@@ -25,6 +25,7 @@ import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { embed } from "$utils/embed.ts";
 import { decodeSubset, encodeSubset, generateTable } from "$utils/ascii.ts";
 import ms from "ms";
+import { addSigListener } from "$utils/sighandler.ts";
 
 const MAX_COLUMNS = 4;
 const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(
@@ -37,7 +38,7 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   .slice(1)
   .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
-const SIGNAL_RESPONSES: { [Key in HandlerSignals]: BaseMessageOptions } = {
+const SIGNAL_RESPONSES: { [Key in HandlerSignals]?: BaseMessageOptions } = {
   [HandlerSignals.LobbyTimedOut]: {
     embeds: [setCodinGameStyles(
       embed({
@@ -50,6 +51,7 @@ const SIGNAL_RESPONSES: { [Key in HandlerSignals]: BaseMessageOptions } = {
 };
 
 const activeClashes: { [x: string]: Clash } = {};
+let rateLimits: string[] = [];
 
 function setCodinGameStyles(
   emb: EmbedBuilder,
@@ -162,19 +164,31 @@ function clashMessage(
 }
 const clashHandlerBuilder =
   (interaction: ButtonInteraction | ChatInputCommandInteraction): Handler =>
-  (data) => {
-    if (typeof data === "number") {
-      interaction.editReply({
-        content: "",
-        components: [],
-        embeds: [],
-        ...SIGNAL_RESPONSES[data],
-      });
-      return; // #TODO: ERRORHANDLING
+  async (clash, code) => {
+    if (!code) {
+      interaction.editReply(clashMessage(clash, interaction.user.id));
+      return
     }
-    interaction.editReply(clashMessage(data, interaction.user.id));
+    switch (code) {
+      case HandlerSignals.InteractionTimedOut: {
+	await interaction.editReply({
+	  ...clashInteractionTimeoutMessage(interaction, clash),
+	});
+	activeClashes[clash.data.handle].handler = () => {};
+	break
+      }
+      default: {
+	interaction.editReply({
+	  content: "",
+	  components: [],
+	  embeds: [],
+	  ...(Object.hasOwn(SIGNAL_RESPONSES, code) ? SIGNAL_RESPONSES[code] : {}),
+	});
+	break
+      }	      
+    }
   };
-const clashInteractionTimeoutMessage = (
+const clashInteractionTimeoutMessage = ( // Interaction timeout message
   interaction: ButtonInteraction | ChatInputCommandInteraction,
   clash: Clash,
 ): BaseMessageOptions => ({
@@ -192,6 +206,84 @@ const clashInteractionTimeoutMessage = (
         ),
     )],
 });
+async function clashCreateManager( // 1. Checks for ratelimit, 2. creates an clash, 3. set's appropriate timeouts
+  interaction: ButtonInteraction | ChatInputCommandInteraction,
+  langs: Languages,
+  modes: GameModes,
+) {
+  if (!interaction.channelId) {
+    interaction.reply({
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - ERROR",
+            message: "This interaction is not in a channel.",
+            kindOfEmbed: "error",
+          }),
+          false,
+        ),
+      ],
+      ephemeral: true,
+    });
+    return;
+  }
+  if (rateLimits.includes(interaction.channelId)) {
+    interaction.reply({
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - Ratelimited",
+            message:
+              "Hi, there's a rate-limit of 15 seconds on this command. This is to prevent button/command-spamming and getting me blocked from codingame.",
+            kindOfEmbed: "error",
+          }),
+          false,
+        ),
+      ],
+      ephemeral: true,
+    });
+    return;
+  }
+  rateLimits.push(interaction.channelId);
+  setTimeout(
+    () => rateLimits = rateLimits.filter((v) => v !== interaction.channelId),
+    15 * 1000,
+  );
+
+  const clash = await Clash.createNew(
+    langs,
+    modes,
+    clashHandlerBuilder(interaction),
+  );
+  if (!clash) {
+    await interaction.reply({
+      embeds: [
+        setCodinGameStyles(
+          embed({
+            title: "Clash of Code - ERROR",
+            message: "Something went wrong with creating the clash.",
+            kindOfEmbed: "error",
+          }),
+        ),
+      ],
+      ephemeral: true,
+    });
+    return;
+  }
+
+  activeClashes[clash.data.handle] = clash;
+  await interaction.reply(clashMessage(clash, interaction.user.id));
+
+  setTimeout(() => {
+    activeClashes[clash.data.handle].handler(clash, HandlerSignals.InteractionTimedOut);
+  }, 10 * 1000 * 60);
+}
+
+addSigListener(async () => {
+  for (const clash of Object.values(activeClashes)) {
+    await clash.handler(clash, HandlerSignals.InteractionTimedOut)
+  }
+})
 
 const command: SlashCommand = {
   inDm: true,
@@ -231,37 +323,7 @@ const command: SlashCommand = {
 
           return reduced;
         }, []) ?? [];
-
-    const clash = await Clash.createNew(
-      langs,
-      modes,
-      clashHandlerBuilder(interaction),
-    );
-    if (!clash) {
-      await interaction.reply({
-        embeds: [
-          setCodinGameStyles(
-            embed({
-              title: "Clash of Code - ERROR",
-              message: "Something went wrong with creating the clash.",
-              kindOfEmbed: "error",
-            }),
-          ),
-        ],
-        ephemeral: true,
-      });
-      return;
-    }
-
-    activeClashes[clash.data.handle] = clash;
-    await interaction.reply(clashMessage(clash, interaction.user.id));
-
-    setTimeout(async () => {
-      activeClashes[clash.data.handle].handler = () => {};
-      await interaction.editReply({
-        ...clashInteractionTimeoutMessage(interaction, clash),
-      });
-    }, 0.4 * 1000 * 60);
+    await clashCreateManager(interaction, langs, modes);
   },
 
   autocomplete: async (interaction) => {
@@ -334,7 +396,7 @@ const command: SlashCommand = {
             setCodinGameStyles(
               embed({
                 title: "Clash of Code",
-                message: result
+                message: !result
                   ? "Start signal sent!"
                   : "Something went wrong while sending the start signal, did the game already start?",
                 kindOfEmbed: "error",
@@ -373,14 +435,17 @@ const command: SlashCommand = {
           await notExist();
           return;
         }
-	
-	let clash: Clash | undefined;
-	if (Object.hasOwn(activeClashes, params[2])) {
-	  clash = activeClashes[params[2]]
-	  clash.handler = clashHandlerBuilder(interaction)
-	} else {
-	  clash = await Clash.createExisting(params[2], clashHandlerBuilder(interaction))
-	}
+
+        let clash: Clash | undefined;
+        if (Object.hasOwn(activeClashes, params[2])) {
+          clash = activeClashes[params[2]];
+          clash.handler = clashHandlerBuilder(interaction);
+        } else {
+          clash = await Clash.createExisting(
+            params[2],
+            clashHandlerBuilder(interaction),
+          );
+        }
         if (!clash) {
           await notExist();
           return;
@@ -401,6 +466,7 @@ const command: SlashCommand = {
           });
           return;
         }
+	if (!clash.fetch()) {await notExist(); return}
 
         await interaction.update({
           content: "# Loading... 💫",
@@ -415,26 +481,22 @@ const command: SlashCommand = {
         if (
           !clash.data.started ||
           clash.data.started &&
-	  !clash.data.finished && 
+            !clash.data.finished &&
             (clash.data.endDate.getTime() - Date.now() > 10 * 1000 * 60)
-        ) setTimeout(async () => {
-	  activeClashes[clash.data.handle].handler = () => {};
-	  await interaction.editReply({
-	    ...clashInteractionTimeoutMessage(interaction, clash),
-	  });
-	}, 10 * 1000 * 60);
+        ) {
+          setTimeout(() => {
+            activeClashes[clash.data.handle].handler(clash, HandlerSignals.InteractionTimedOut)
+          }, 10 * 1000 * 60);
+        }
 
         break;
       }
       case "restart": {
-	//const clash = 
-	//       createClashManager(
-	//         decodeSubset(params[3], LANGUAGES),
-	//         decodeSubset(params[2], GAMEMODES),
-	//         interaction,
-	//       );
-
-        break;
+        await clashCreateManager(
+          interaction,
+          decodeSubset(params[3], LANGUAGES),
+          decodeSubset(params[2], GAMEMODES),
+        );
       }
     }
   },
