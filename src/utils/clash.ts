@@ -152,13 +152,13 @@ const codingameReq = (file: string, body: string) =>
   });
 const notOk = (res: Response) => !res.ok || res.status !== 200;
 
-export enum ClashErrorCodes {
+export enum HandlerSignals { // #TODO: implement this in populate with more errors and return those instead of boolean.
   LobbyTimedOut,
-  Disconnected,
+  //Disconnected,
 }
-export type Handler = (clash: Clash | ClashErrorCodes) => void;
+export type Handler = (clash: Clash | HandlerSignals) => void;
 export class Clash {
-  declare private clash: LobbyClash | InGameClash
+  declare private clash: LobbyClash | InGameClash;
   declare public handler: Handler;
 
   declare private socket: Socket;
@@ -250,7 +250,9 @@ export class Clash {
     this.cancelClashInterval = setInterval(
       () => {
         if (this.clash.started) clearInterval(this.cancelClashInterval);
+        if (this.clash.players.length > 1) return;
 
+        this.handler(HandlerSignals.LobbyTimedOut);
         this.disconnect();
       },
       5 * 1000 * 60,
@@ -262,7 +264,7 @@ export class Clash {
   public disconnect() {
     clearInterval(this.cancelClashInterval);
     this.socket.close();
-    this.handler(ClashErrorCodes.Disconnected);
+    //this.handler(ClashErrorCodes.Disconnected);
   }
   public async start(): Promise<boolean> {
     if (this.clash.started) return false;

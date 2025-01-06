@@ -1,11 +1,35 @@
 import { SlashCommand } from "$/commandLoader.ts";
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { Clash, GAMEMODES, LANGUAGES } from "$utils/clash.ts";
+import {
+  ActionRowBuilder,
+  BaseMessageOptions,
+  ButtonBuilder,
+  ButtonInteraction,
+  ButtonStyle,
+  ChatInputCommandInteraction,
+  codeBlock,
+  EmbedBuilder,
+  SlashCommandBuilder,
+  time,
+  userMention,
+} from "discord.js";
+import {
+  Clash,
+  GAMEMODES,
+  Handler,
+  HandlerSignals,
+  LANGUAGES,
+  USERID,
+} from "$utils/clash.ts";
 import { GameModes, Languages } from "$/commands/utility/coc.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { embed } from "$utils/embed.ts";
+import { decodeSubset, encodeSubset, generateTable } from "$utils/ascii.ts";
+import ms from "ms";
 
-const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(-1)
+const MAX_COLUMNS = 4;
+const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(
+  -1,
+);
 const LOWERCASE_LANGUAGES = LANGUAGES.map((v) => v.toLowerCase());
 const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   ...Array(1 << GAMEMODES.length).keys(),
@@ -13,7 +37,19 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   .slice(1)
   .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
-const activeClashes: {[x: string]: Clash} = {}
+const SIGNAL_RESPONSES: { [Key in HandlerSignals]: BaseMessageOptions } = {
+  [HandlerSignals.LobbyTimedOut]: {
+    embeds: [setCodinGameStyles(
+      embed({
+        kindOfEmbed: "warning",
+        message: "This clash has timed out, please create a new one.",
+      }),
+      false,
+    )],
+  },
+};
+
+const activeClashes: { [x: string]: Clash } = {};
 
 function setCodinGameStyles(
   emb: EmbedBuilder,
@@ -27,14 +63,142 @@ function setCodinGameStyles(
   });
   if (color) emb.setColor("#f2bb13");
   return emb;
-};
+}
+function clashMessage(
+  clash: Clash,
+  ownerID: string,
+): BaseMessageOptions {
+  const game = clash.data;
+
+  const joinButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Link)
+    .setLabel("Join")
+    .setURL(`https://www.codingame.com/clashofcode/clash/${game.handle}`)
+    .setEmoji("1324822050497630313");
+  const startButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Success)
+    .setLabel("Start Game")
+    .setCustomId(`${command.command.name}_start_${ownerID}_${game.handle}`);
+  const playAgainButton = new ButtonBuilder()
+    .setStyle(ButtonStyle.Primary)
+    .setLabel("Play Again")
+    .setCustomId(
+      `${command.command.name}_restart_${
+        encodeSubset(
+          game.modes,
+          GAMEMODES,
+        )
+      }_${encodeSubset(game.langs, LANGUAGES)}`,
+    );
+
+  const playerField = game.started
+    ? game.players
+      .sort((a, b) => a.rank - b.rank)
+      .map((p) => {
+        const status = p.completed
+          ? (p.score === 100
+            ? "<:helYea:261861228370984971>"
+            : p.score > 0
+            ? "<:helMeh:734272318536417280>"
+            : "<:helNa:261861228542951434>")
+          : "⌛";
+        const stats = p.completed
+          ? ` - ${ms(p.duration)} ` +
+            (p.criterion ? `(${p.criterion}ms)` : "")
+          : "";
+        return `${p.rank}. ${status} ${p.nickname}${stats}`;
+      })
+      .join("\n") + " "
+    : game.players.map((p) => `- ${p.nickname}`).join("\n") + " ";
+  if (!game.langs.length) game.langs.push("All");
+
+  return {
+    embeds: [
+      setCodinGameStyles(
+        embed({
+          title: `Clash of Code - ${
+            !game.started ? "Lobby" : game.finished ? "Finished" : game.mode
+          }`,
+          message: !game.started
+            ? `${
+              userMention(ownerID)
+            } is the host and can start the game. Others may start a new game.`
+            : game.finished
+            ? `The game has finished.\n# ${
+              game.players.find((v) => v.rank === 1)?.nickname
+            } is the winner!`
+            : `The game is currently running. Join now, before it ends!\n-# ${
+              time(game.endDate, "R")
+            }`,
+        }),
+        true,
+      )
+        .addFields(
+          {
+            name: "Programming languages",
+            value: codeBlock(generateTable(MAX_COLUMNS, game.langs)),
+            inline: false,
+          },
+          {
+            name: "Players",
+            value: playerField,
+            inline: true,
+          },
+          {
+            name: "Game modes",
+            value: game.modes.map((v) => `- ${v}`).join("\n") + " ",
+            inline: true,
+          },
+        ),
+    ],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        joinButton,
+        ...(!game.started ? [startButton] : []),
+        playAgainButton,
+      ),
+    ],
+  };
+}
+const clashHandlerBuilder =
+  (interaction: ButtonInteraction | ChatInputCommandInteraction): Handler =>
+  (data) => {
+    if (typeof data === "number") {
+      interaction.editReply({
+        content: "",
+        components: [],
+        embeds: [],
+        ...SIGNAL_RESPONSES[data],
+      });
+      return; // #TODO: ERRORHANDLING
+    }
+    interaction.editReply(clashMessage(data, interaction.user.id));
+  };
+const clashInteractionTimeoutMessage = (
+  interaction: ButtonInteraction | ChatInputCommandInteraction,
+  clash: Clash,
+): BaseMessageOptions => ({
+  embeds: [setCodinGameStyles(embed({
+    message:
+      "I'll be unable to edit this message soon, due to a [Discord limitation](<https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback>). Please press the button to continue showing a live-feed of the clash.",
+  }))],
+  components: [new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setStyle(ButtonStyle.Primary)
+        .setLabel("Continue")
+        .setCustomId(
+          `${command.command.name}_continue_${clash.data.handle}_${interaction.user.id}`,
+        ),
+    )],
+});
 
 const command: SlashCommand = {
   inDm: true,
   permissions: "everywhere",
 
   command: new SlashCommandBuilder()
-    .setName("coc")
+    .setName("newcoc")
     .setDescription("Start clash of code games from discord!")
     .addStringOption((opts) =>
       opts
@@ -68,12 +232,36 @@ const command: SlashCommand = {
           return reduced;
         }, []) ?? [];
 
-    const clash = await Clash.createNew(langs, modes, () => {})
+    const clash = await Clash.createNew(
+      langs,
+      modes,
+      clashHandlerBuilder(interaction),
+    );
     if (!clash) {
-
-      return
+      await interaction.reply({
+        embeds: [
+          setCodinGameStyles(
+            embed({
+              title: "Clash of Code - ERROR",
+              message: "Something went wrong with creating the clash.",
+              kindOfEmbed: "error",
+            }),
+          ),
+        ],
+        ephemeral: true,
+      });
+      return;
     }
+
     activeClashes[clash.data.handle] = clash;
+    await interaction.reply(clashMessage(clash, interaction.user.id));
+
+    setTimeout(async () => {
+      activeClashes[clash.data.handle].handler = () => {};
+      await interaction.editReply({
+        ...clashInteractionTimeoutMessage(interaction, clash),
+      });
+    }, 0.4 * 1000 * 60);
   },
 
   autocomplete: async (interaction) => {
@@ -125,119 +313,131 @@ const command: SlashCommand = {
     );
   },
 
-	// button: async (interaction) => {
-	//   const params = interaction.customId.split("_");
-	//   const command = params[1];
-	//
-	//   switch (command) {
-	//     case "start": {
-	//       if (params[2] !== interaction.user.id) {
-	//         interaction.reply({
-	//           embeds: [setCodinGameStyles(accessDeniedEmbed, false)],
-	//           ephemeral: true,
-	//         });
-	//         return;
-	//       }
-	//
-	//       //const result = await startClash(params[3]); FIXME:
-	//const result = true;
-	//       await interaction.reply({
-	//         embeds: [
-	//           setCodinGameStyles(
-	//             embed({
-	//               title: "Clash of Code",
-	//               message: result
-	//                 ? "Start signal sent!"
-	//                 : "Something went wrong while sending the start signal, did the game already start?",
-	//               kindOfEmbed: "error",
-	//             }),
-	//             result,
-	//           ),
-	//         ],
-	//         ephemeral: true,
-	//       });
-	//       setTimeout(() => interaction.deleteReply(), 2000);
-	//       break;
-	//     }
-	//     case "continue": {
-	//       const notExist = () =>
-	//         interaction.reply({
-	//           embeds: [embed({
-	//             kindOfEmbed: "error",
-	//             title: "Clash of Code - ERROR",
-	//             message: "This clash does not exist anymore.",
-	//           })],
-	//           ephemeral: true,
-	//         });
-	//
-	//       if (!params[3]) {
-	//         await interaction.reply({
-	//           embeds: [embed({
-	//             kindOfEmbed: "error",
-	//             title: "Clash of Code - ERROR",
-	//             message:
-	//               "Internal error.\n-# This button doesn't have an owner parameter.",
-	//           })],
-	//           ephemeral: true,
-	//         });
-	//       }
-	//
-	//       const clash = await getClash(params[2]);
-	//       if (!clash) {
-	//         await notExist();
-	//         return;
-	//       }
-	//       if (!clash.players.find((v) => v.userID === USERID)) {
-	//         await interaction.update({
-	//           content: "",
-	//           embeds: [setCodinGameStyles(
-	//             embed({
-	//               kindOfEmbed: "error",
-	//               message:
-	//                 "Unable to manage this game anymore. I probably disconnected before the game started.",
-	//             }),
-	//             false,
-	//           )],
-	//           components: [],
-	//         });
-	//         return;
-	//       }
-	//
-	//       await interaction.update({
-	//         content: "# Loading... 💫",
-	//         embeds: [],
-	//         components: [],
-	//       }); // Sadly, update is unable to show emojis properly, kind of a hacky fix.
-	//       await interaction.editReply({
-	//         content: "",
-	//         ...clashMessage(clash, params[3]),
-	//       });
-	//       if (clash.started && clash.finished) return;
-	//       if (
-	//         !clash.started ||
-	//         clash.started &&
-	//           (clash.endDate.getTime() - Date.now() > 10 * 1000 * 60)
-	//       ) newMessageTimeout(clash);
-	//
-	//       const hasEventManager = Object.hasOwn(activeClashHandlers, params[2]);
-	//       activeClashHandlers[clash.handle] = clashEventManagerCallback(
-	//         interaction,
-	//       );
-	//
-	//       if (!hasEventManager) await clashEventManager(clash.handle);
-	//       break;
-	//     }
-	//     case "restart": {
+  button: async (interaction) => {
+    const params = interaction.customId.split("_");
+    const command = params[1];
+
+    switch (command) {
+      case "start": {
+        if (params[2] !== interaction.user.id) {
+          interaction.reply({
+            embeds: [setCodinGameStyles(accessDeniedEmbed, false)],
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const result = Object.hasOwn(activeClashes, params[3]) &&
+          await activeClashes[params[3]].start();
+        await interaction.reply({
+          embeds: [
+            setCodinGameStyles(
+              embed({
+                title: "Clash of Code",
+                message: result
+                  ? "Start signal sent!"
+                  : "Something went wrong while sending the start signal, did the game already start?",
+                kindOfEmbed: "error",
+              }),
+              result,
+            ),
+          ],
+          ephemeral: true,
+        });
+        setTimeout(() => interaction.deleteReply(), 5000);
+        break;
+      }
+      case "continue": {
+        const notExist = () =>
+          interaction.reply({
+            embeds: [embed({
+              kindOfEmbed: "error",
+              title: "Clash of Code - ERROR",
+              message: "This clash does not exist anymore.",
+            })],
+            ephemeral: true,
+          });
+
+        if (!params[3]) {
+          await interaction.reply({
+            embeds: [embed({
+              kindOfEmbed: "error",
+              title: "Clash of Code - ERROR",
+              message:
+                "Internal error.\n-# This button doesn't have an owner parameter.",
+            })],
+            ephemeral: true,
+          });
+        }
+        if (!params[2]) {
+          await notExist();
+          return;
+        }
+	
+	let clash: Clash | undefined;
+	if (Object.hasOwn(activeClashes, params[2])) {
+	  clash = activeClashes[params[2]]
+	  clash.handler = clashHandlerBuilder(interaction)
+	} else {
+	  clash = await Clash.createExisting(params[2], clashHandlerBuilder(interaction))
+	}
+        if (!clash) {
+          await notExist();
+          return;
+        }
+
+        if (!clash.data.players.find((v) => v.userID === USERID)) {
+          await interaction.update({
+            content: "",
+            embeds: [setCodinGameStyles(
+              embed({
+                kindOfEmbed: "error",
+                message:
+                  "Unable to manage this game anymore. I probably disconnected before the game started.",
+              }),
+              false,
+            )],
+            components: [],
+          });
+          return;
+        }
+
+        await interaction.update({
+          content: "# Loading... 💫",
+          embeds: [],
+          components: [],
+        }); // Sadly, update is unable to show emojis properly, kind of a hacky fix.
+        await interaction.editReply({
+          content: "",
+          ...clashMessage(clash, params[3]),
+        });
+
+        if (
+          !clash.data.started ||
+          clash.data.started &&
+	  !clash.data.finished && 
+            (clash.data.endDate.getTime() - Date.now() > 10 * 1000 * 60)
+        ) setTimeout(async () => {
+	  activeClashes[clash.data.handle].handler = () => {};
+	  await interaction.editReply({
+	    ...clashInteractionTimeoutMessage(interaction, clash),
+	  });
+	}, 10 * 1000 * 60);
+
+        break;
+      }
+      case "restart": {
+	//const clash = 
 	//       createClashManager(
 	//         decodeSubset(params[3], LANGUAGES),
 	//         decodeSubset(params[2], GAMEMODES),
 	//         interaction,
 	//       );
-	//
-	//       break;
-	//     }
-	//   }
-	// },
+
+        break;
+      }
+    }
+  },
 };
 
 export default command;

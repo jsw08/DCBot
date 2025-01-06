@@ -10,6 +10,7 @@
     "jsr:@std/cli@^1.0.8": "1.0.8",
     "jsr:@std/dotenv@*": "0.225.3",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
+    "jsr:@std/encoding@*": "1.0.5",
     "jsr:@std/encoding@0.221": "0.221.0",
     "jsr:@std/encoding@^1.0.5": "1.0.5",
     "jsr:@std/fmt@0.221": "0.221.0",

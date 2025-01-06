@@ -1,3 +1,5 @@
+import { encodeHex } from "jsr:@std/encoding/hex";
+
 export const generateTable = (columns: number, items: string[]): string => {
   columns = items.length > columns ? columns : items.length;
   const columnWidths: number[] = items.reduce(
@@ -53,3 +55,11 @@ export const decodeSubset = (encodedString: string, base: string[]): string[] =>
     }
     return base[index];
   });
+
+export const hashString = async (string: string) => {
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(string),
+  );
+  return encodeHex(hashBuffer);
+};
