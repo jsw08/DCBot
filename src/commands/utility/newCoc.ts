@@ -1,6 +1,7 @@
 import { SlashCommand } from "$/commandLoader.ts";
 import {
   ActionRowBuilder,
+  APIEmbedField,
   BaseMessageOptions,
   ButtonBuilder,
   ButtonInteraction,
@@ -26,8 +27,8 @@ import { embed } from "$utils/embed.ts";
 import { decodeSubset, encodeSubset, generateTable } from "$utils/ascii.ts";
 import ms from "ms";
 import { addSigListener } from "$utils/sighandler.ts";
+import { spreadFields } from "$utils/formatting.ts";
 
-const MAX_COLUMNS = 4;
 const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(
   -1,
 );
@@ -93,7 +94,17 @@ function clashMessage(
       }_${encodeSubset(game.langs, LANGUAGES)}`,
     );
 
-  const playerField = game.started
+  for (let i = 0; i < 4; i++) game.players.push({
+    nickname: "temp",
+    score: 0,
+    criterion: 0,
+    duration: 0,
+    userID: 0,
+    rank: 0,
+    completed: true
+  })
+
+  const players = game.started
     ? game.players
       .sort((a, b) => a.rank - b.rank)
       .map((p) => {
@@ -106,13 +117,30 @@ function clashMessage(
           : "⌛";
         const stats = p.completed
           ? ` - ${ms(p.duration)} ` +
-            (p.criterion ? `(${p.criterion}ms)` : "")
+            (p.criterion ? `(${p.criterion} bytes)` : "")
           : "";
-        return `${p.rank}. ${status} ${p.nickname}${stats}`;
+        return `${p.rank}\\. ${status} ${p.nickname}${stats}`;
       })
-      .join("\n") + " "
-    : game.players.map((p) => `- ${p.nickname}`).join("\n") + " ";
+    : game.players.map((p) => `- ${p.nickname}`);
   if (!game.langs.length) game.langs.push("All");
+
+  const fields: APIEmbedField[] = [
+    spreadFields(
+      game.langs.map(v => `- ${v}`),
+      "Programming languages"
+    ),
+    spreadFields(
+      players,
+      "Players"
+    ),
+    [{
+      name: "Game modes",
+      value: game.modes.map((v) => `- ${v}`).join("\n") + " ",
+      inline: true,
+    }],
+  ]
+    .sort((a, b) => b.length - a.length)
+    .flat()
 
   return {
     embeds: [
@@ -135,23 +163,7 @@ function clashMessage(
         }),
         true,
       )
-        .addFields(
-          {
-            name: "Programming languages",
-            value: codeBlock(generateTable(MAX_COLUMNS, game.langs)),
-            inline: false,
-          },
-          {
-            name: "Players",
-            value: playerField,
-            inline: true,
-          },
-          {
-            name: "Game modes",
-            value: game.modes.map((v) => `- ${v}`).join("\n") + " ",
-            inline: true,
-          },
-        ),
+        .addFields(fields),
     ],
     components: [
       new ActionRowBuilder<ButtonBuilder>().addComponents(

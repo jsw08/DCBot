@@ -285,7 +285,7 @@ export class Clash {
     language?: (typeof this)["data"]["langs"][number],
   ): Promise<boolean> {
     if (language && !this.clash.langs.includes(language)) return true;
-    else language = "Ruby";
+    else language = this.clash.langs[0] ?? "Ruby";
 
     const testSesh = await codingameReq(
       "/services/ClashOfCode/startClashTestSession",
