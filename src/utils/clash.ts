@@ -41,11 +41,11 @@ type CommonClash = {
   langs: Language[];
   modes: GameMode[];
 };
-type CommonPlayerClash = {
+export type CommonPlayerClash = {
   nickname: string;
   userID: number;
 };
-type InGamePlayerClash = CommonPlayerClash & {
+export type InGamePlayerClash = CommonPlayerClash & {
   completed: boolean;
   rank: number;
   score: number;

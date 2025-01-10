@@ -15,9 +15,11 @@ import {
 } from "discord.js";
 import {
   Clash,
+  CommonPlayerClash,
   GAMEMODES,
   Handler,
   HandlerSignals,
+  InGamePlayerClash,
   LANGUAGES,
   USERID,
 } from "$utils/clash.ts";
@@ -94,15 +96,15 @@ function clashMessage(
       }_${encodeSubset(game.langs, LANGUAGES)}`,
     );
 
-  for (let i = 0; i < 4; i++) game.players.push({
-    nickname: "temp",
-    score: 0,
-    criterion: 0,
-    duration: 0,
-    userID: 0,
-    rank: 0,
-    completed: true
-  })
+  //for (let i = 0; i < 4; i++) game.players.push({
+  //  nickname: "temp",
+  //  score: 0,
+  //  criterion: 0,
+  //  duration: 0,
+  //  userID: 0,
+  //  rank: 0,
+  //  completed: true
+  //})
 
   const players = game.started
     ? game.players
@@ -458,12 +460,13 @@ const command: SlashCommand = {
             clashHandlerBuilder(interaction),
           );
         }
-        if (!clash) {
+        if (!clash || !await clash.fetch()) {
           await notExist();
           return;
         }
 
-        if (!clash.data.players.find((v) => v.userID === USERID)) {
+	const me = (clash.data.players as (InGamePlayerClash | CommonPlayerClash)[]).find((v) => v.userID === USERID);
+        if (!me) {
           await interaction.update({
             content: "",
             embeds: [setCodinGameStyles(
@@ -478,7 +481,9 @@ const command: SlashCommand = {
           });
           return;
         }
-	if (!clash.fetch()) {await notExist(); return}
+	if (clash.data.started && !(me as InGamePlayerClash).completed) {
+	  await clash.submit("// late submit :3")
+	}
 
         await interaction.update({
           content: "# Loading... 💫",
