@@ -51,7 +51,7 @@ const sendReminders = () => {
   }
 };
 sendReminders();
-setInterval(sendReminders, parseInt(config.REMINDER_TIMEOUT));
+setInterval(sendReminders, parseInt(config.REMINDER_TIMEOUT) * 1000);
 
 const command: SlashCommand = {
   inDm: true,

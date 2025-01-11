@@ -155,10 +155,13 @@ const notOk = (res: Response) => !res.ok || res.status !== 200;
 export enum HandlerSignals { // TODO: implement this in populate with more errors and return those instead of boolean.
   LobbyTimedOut,
   InteractionTimedOut,
-  Offline,
   Disconnected,
+  Finished,
 }
-export type Handler = (clash: Clash, code?: HandlerSignals) => Promise<void> | void;
+export type Handler = (
+  clash: Clash,
+  code?: HandlerSignals,
+) => Promise<void> | void;
 export class Clash {
   declare private clash: LobbyClash | InGameClash;
   declare public handler: Handler;
@@ -172,8 +175,8 @@ export class Clash {
   get data() {
     return this.clash;
   }
-  get connected() {
-    return this.socket.connected;
+  get connected(): boolean {
+    return this.socket?.connected ?? false;
   }
 
   public static async createNew(
@@ -294,7 +297,7 @@ export class Clash {
     if (notOk(testSesh)) return true;
 
     const testSeshHandle = (await testSesh.json()).handle;
-    await codingameReq(
+    const codeSubmit = await codingameReq(
       "/services/TestSession/submit",
       JSON.stringify([
         testSeshHandle,
@@ -302,24 +305,30 @@ export class Clash {
         null,
       ]),
     );
-    const codeSubmit = await codingameReq(
+    const codeShare = await codingameReq(
       "/services/ClashOfCode/shareCodinGamerSolutionByHandle",
       JSON.stringify([USERID, this.clash.handle]),
     );
-    if (notOk(codeSubmit)) return true;
+
+    console.log(codeSubmit)
+    if (notOk(codeSubmit) || notOk(codeShare)) return true;
 
     return false;
   }
   public async fetch(handle?: string): Promise<this["data"] | undefined> {
+    const hasHandle = handle !== undefined;
+    if (!hasHandle && !this.clash.handle) return;
+    if (!hasHandle) handle = this.clash.handle;
+
     const req = await codingameReq(
       "/services/ClashOfCode/findClashByHandle",
-      JSON.stringify([handle ?? this.clash.handle]),
+      JSON.stringify([handle]),
     );
     if (notOk(req)) return undefined;
 
     const clashData: FetchClashAPI = await req.json();
     const data: this["data"] = {
-      handle: this.clash.handle,
+      handle: handle!,
       langs: clashData.programmingLanguages,
       modes: clashData.modes,
       ...(clashData.started
@@ -346,9 +355,9 @@ export class Clash {
           })),
         }),
     };
-    if (!handle) this.clash = data;
 
-    return handle ? data : this.data;
+    if (!hasHandle) this.clash = data;
+    return data;
   }
 
   private setupSocketEventHandlers() {
@@ -375,17 +384,10 @@ export class Clash {
 
           const justStarted = clashData.started &&
             !clashData.finished &&
-            !started &&
-            !clashData.finished;
+            !started
           if (justStarted) {
             started = true;
-            await this.submit(
-              "// thank you :3",
-              this.clash.langs[0].includes("Ruby") ||
-                this.clash.langs.length < 1
-                ? "Ruby"
-                : this.clash.langs[0],
-            );
+            await this.submit("// thank you :3")
           }
 
           this.clash = {
@@ -417,7 +419,10 @@ export class Clash {
           };
           await this.handler(this);
 
-          if (clashData.finished) this.disconnect();
+          if (clashData.finished) {
+            this.disconnect();
+            this.handler(this, HandlerSignals.Finished);
+          }
           break;
         }
         case "updateClash": {
@@ -429,7 +434,10 @@ export class Clash {
           if (!clashData) return;
           await this.handler(this);
 
-          if (clashData.started && clashData.finished) this.disconnect();
+          if (clashData.started && clashData.finished) {
+            this.disconnect();
+            this.handler(this, HandlerSignals.Finished);
+          }
           break;
         }
       }
@@ -437,17 +445,15 @@ export class Clash {
 
     this.socket.on("disconnect", async (reason) => {
       if (reason.includes("io")) {
-	await this.handler(this, HandlerSignals.Disconnected);
-	return
+        await this.handler(this, HandlerSignals.Disconnected);
+        return;
       }
 
-      await this.handler(this, HandlerSignals.Offline)
-    })
+      await this.handler(this);
+    });
     this.socket.on("reconnect", async () => {
-      await this.fetch()
-      await this.handler(this)
-    })
+      await this.fetch();
+      await this.handler(this);
+    });
   }
 }
-
-

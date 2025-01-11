@@ -1,7 +1,7 @@
 const COLUMNS = 3 as const;
 const MINLENGTH = 4 as const
 
-export function spreadFields(data: string[], fieldName: string ) {
+export function spreadEvenlyFields(data: string[], fieldName: string ) {
   if (data.length >= MINLENGTH) {
     return data
       .reduce<string[][]>((acc, value, index) => {

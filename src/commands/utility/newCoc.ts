@@ -28,7 +28,7 @@ import { embed } from "$utils/embed.ts";
 import { decodeSubset, encodeSubset } from "$utils/ascii.ts";
 import ms from "ms";
 import { addSigListener } from "$utils/sighandler.ts";
-import { spreadFields } from "$utils/formatting.ts";
+import { spreadEvenlyFields } from "$utils/formatting.ts";
 
 const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(
   -1,
@@ -55,6 +55,12 @@ const SIGNAL_RESPONSES: { [Key in HandlerSignals]?: BaseMessageOptions } = {
 const activeClashes: { [x: string]: Clash } = {};
 let rateLimits: string[] = [];
 
+function deleteClash(handle: string): void {
+  if (!Object.hasOwn(activeClashes, handle)) return;
+
+  activeClashes[handle].handler = () => {};
+  delete activeClashes[handle];
+}
 function setCodinGameStyles(
   emb: EmbedBuilder,
   color: boolean = true,
@@ -95,16 +101,6 @@ function clashMessage(
       }_${encodeSubset(game.langs, LANGUAGES)}`,
     );
 
-  //for (let i = 0; i < 4; i++) game.players.push({
-  //  nickname: "temp",
-  //  score: 0,
-  //  criterion: 0,
-  //  duration: 0,
-  //  userID: 0,
-  //  rank: 0,
-  //  completed: true
-  //})
-
   const players = game.started
     ? game.players
       .sort((a, b) => a.rank - b.rank)
@@ -123,16 +119,16 @@ function clashMessage(
         return `${p.rank}\\. ${status} ${p.nickname}${stats}`;
       })
     : game.players.map((p) => `- ${p.nickname}`);
-  if (!game.langs.length) game.langs.push("All");
+  const languages = game.langs.length === 0 ? ["All"] : game.langs; 
 
   const fields: APIEmbedField[] = [
-    spreadFields(
-      game.langs.map(v => `- ${v}`),
-      "Programming languages"
+    spreadEvenlyFields(
+      languages.map((v) => `- ${v}`),
+      "Programming languages",
     ),
-    spreadFields(
+    spreadEvenlyFields(
       players,
-      "Players"
+      "Players",
     ),
     [{
       name: "Game modes",
@@ -141,7 +137,7 @@ function clashMessage(
     }],
   ]
     .sort((a, b) => b.length - a.length)
-    .flat()
+    .flat();
 
   return {
     embeds: [
@@ -149,7 +145,7 @@ function clashMessage(
         embed({
           title: `Clash of Code - ${
             !game.started ? "Lobby" : game.finished ? "Finished" : game.mode
-          }`,
+          } ${!clash.connected ? "" : "- reconnecting"}`,
           message: !game.started
             ? `${
               userMention(ownerID)
@@ -178,27 +174,46 @@ function clashMessage(
 const clashHandlerBuilder =
   (interaction: ButtonInteraction | ChatInputCommandInteraction): Handler =>
   async (clash, code) => {
+    const data = clash.data;
+    const handle = data.handle;
+    console.log(Deno.inspect(activeClashes, {depth: 1}))
+
     if (!code) {
-      interaction.editReply(clashMessage(clash, interaction.user.id));
-      return
+      await interaction.editReply(clashMessage(clash, interaction.user.id));
+      return;
     }
+
     switch (code) {
       case HandlerSignals.InteractionTimedOut: {
-	await interaction.editReply({
-	  ...clashInteractionTimeoutMessage(interaction, clash),
-	});
-	activeClashes[clash.data.handle].handler = () => {};
+        await interaction.editReply({
+          ...clashInteractionTimeoutMessage(interaction, clash),
+        });
+        break;
+      }
+      case HandlerSignals.Disconnected: {
+        await interaction.editReply({
+          embeds: [embed({})],
+        });
+
+        deleteClash(handle);
+        break;
+      }
+      case HandlerSignals.Finished: {
+	await interaction.editReply(clashMessage(clash, interaction.user.id));
+	deleteClash(handle)
 	break
       }
       default: {
-	interaction.editReply({
-	  content: "",
-	  components: [],
-	  embeds: [],
-	  ...(Object.hasOwn(SIGNAL_RESPONSES, code) ? SIGNAL_RESPONSES[code] : {}),
-	});
-	break
-      }	      
+        interaction.editReply({
+          content: "",
+          components: [],
+          embeds: [],
+          ...(Object.hasOwn(SIGNAL_RESPONSES, code)
+            ? SIGNAL_RESPONSES[code]
+            : {}),
+        });
+        break;
+      }
     }
   };
 const clashInteractionTimeoutMessage = ( // Interaction timeout message
@@ -285,18 +300,22 @@ async function clashCreateManager( // 1. Checks for ratelimit, 2. creates an cla
   }
 
   activeClashes[clash.data.handle] = clash;
+  console.log(activeClashes[clash.data.handle])
   await interaction.reply(clashMessage(clash, interaction.user.id));
 
   setTimeout(() => {
-    activeClashes[clash.data.handle].handler(clash, HandlerSignals.InteractionTimedOut);
+    activeClashes[clash.data.handle].handler(
+      clash,
+      HandlerSignals.InteractionTimedOut,
+    );
   }, 10 * 1000 * 60);
 }
 
 addSigListener(async () => {
   for (const clash of Object.values(activeClashes)) {
-    await clash.handler(clash, HandlerSignals.InteractionTimedOut)
+    await clash.handler(clash, HandlerSignals.InteractionTimedOut);
   }
-})
+});
 
 const command: SlashCommand = {
   inDm: true,
@@ -414,7 +433,7 @@ const command: SlashCommand = {
                   : "Something went wrong while sending the start signal, did the game already start?",
                 kindOfEmbed: "error",
               }),
-              result,
+              !result,
             ),
           ],
           ephemeral: true,
@@ -423,6 +442,7 @@ const command: SlashCommand = {
         break;
       }
       case "continue": {
+	await interaction.deferReply();
         const notExist = () =>
           interaction.reply({
             embeds: [embed({
@@ -464,9 +484,11 @@ const command: SlashCommand = {
           return;
         }
 
-	const me = (clash.data.players as (InGamePlayerClash | CommonPlayerClash)[]).find((v) => v.userID === USERID);
+        const me =
+          (clash.data.players as (InGamePlayerClash | CommonPlayerClash)[])
+            .find((v) => v.userID === USERID);
         if (!me) {
-          await interaction.update({
+          await interaction.editReply({
             content: "",
             embeds: [setCodinGameStyles(
               embed({
@@ -480,19 +502,10 @@ const command: SlashCommand = {
           });
           return;
         }
-	if (clash.data.started && !(me as InGamePlayerClash).completed) {
-	  await clash.submit("// late submit :3")
-	}
-
-        await interaction.update({
-          content: "# Loading... 💫",
-          embeds: [],
-          components: [],
-        }); // Sadly, update is unable to show emojis properly, kind of a hacky fix.
-        await interaction.editReply({
-          content: "",
-          ...clashMessage(clash, params[3]),
-        });
+        if (clash.data.started && !(me as InGamePlayerClash).completed) {
+          await clash.submit("// late submit :3");
+        }
+        await interaction.editReply(clashMessage(clash, params[3]));
 
         if (
           !clash.data.started ||
@@ -501,7 +514,10 @@ const command: SlashCommand = {
             (clash.data.endDate.getTime() - Date.now() > 10 * 1000 * 60)
         ) {
           setTimeout(() => {
-            activeClashes[clash.data.handle].handler(clash, HandlerSignals.InteractionTimedOut)
+            activeClashes[clash.data.handle].handler(
+              clash,
+              HandlerSignals.InteractionTimedOut,
+            );
           }, 10 * 1000 * 60);
         }
 
