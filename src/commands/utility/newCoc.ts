@@ -7,7 +7,6 @@ import {
   ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
-  codeBlock,
   EmbedBuilder,
   SlashCommandBuilder,
   time,
@@ -26,7 +25,7 @@ import {
 import { GameModes, Languages } from "$/commands/utility/coc.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { embed } from "$utils/embed.ts";
-import { decodeSubset, encodeSubset, generateTable } from "$utils/ascii.ts";
+import { decodeSubset, encodeSubset } from "$utils/ascii.ts";
 import ms from "ms";
 import { addSigListener } from "$utils/sighandler.ts";
 import { spreadFields } from "$utils/formatting.ts";

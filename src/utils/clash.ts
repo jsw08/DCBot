@@ -154,8 +154,9 @@ const notOk = (res: Response) => !res.ok || res.status !== 200;
 
 export enum HandlerSignals { // TODO: implement this in populate with more errors and return those instead of boolean.
   LobbyTimedOut,
-  InteractionTimedOut 
-  //Disconnected,
+  InteractionTimedOut,
+  Offline,
+  Disconnected,
 }
 export type Handler = (clash: Clash, code?: HandlerSignals) => Promise<void> | void;
 export class Clash {
@@ -249,11 +250,11 @@ export class Clash {
     }
 
     this.cancelClashInterval = setInterval(
-      () => {
+      async () => {
         if (this.clash.started) clearInterval(this.cancelClashInterval);
         if (this.clash.players.length > 1) return;
 
-        this.handler(this, HandlerSignals.LobbyTimedOut);
+        await this.handler(this, HandlerSignals.LobbyTimedOut);
         this.disconnect();
       },
       5 * 1000 * 60,
@@ -265,7 +266,6 @@ export class Clash {
   public disconnect() {
     clearInterval(this.cancelClashInterval);
     this.socket.close();
-    //this.handler(ClashErrorCodes.Disconnected);
   }
   public async start(): Promise<boolean> {
     if (this.clash.started) return false;
@@ -415,7 +415,7 @@ export class Clash {
                 })),
               }),
           };
-          this.handler(this);
+          await this.handler(this);
 
           if (clashData.finished) this.disconnect();
           break;
@@ -427,13 +427,26 @@ export class Clash {
 
           const clashData = await this.fetch();
           if (!clashData) return;
-          this.handler(this);
+          await this.handler(this);
 
           if (clashData.started && clashData.finished) this.disconnect();
           break;
         }
       }
     });
+
+    this.socket.on("disconnect", async (reason) => {
+      if (reason.includes("io")) {
+	await this.handler(this, HandlerSignals.Disconnected);
+	return
+      }
+
+      await this.handler(this, HandlerSignals.Offline)
+    })
+    this.socket.on("reconnect", async () => {
+      await this.fetch()
+      await this.handler(this)
+    })
   }
 }
 
