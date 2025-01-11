@@ -35,23 +35,25 @@ const dcTimestamp = (date: number, type: string) =>
   `<t:${Math.floor(date / 1000)}:${type}>`;
 
 const sendReminders = () => {
+  if (!db.open) return
+
   const reminders = db
     .sql`SELECT message, id, discord_id, date FROM reminders WHERE date < unixepoch('now')`;
   for (const i of reminders) {
     const reminder = i as Reminder;
     client.users.send(reminder.discord_id, {
       embeds: [embed({
-        title: "Reminder",
-        message: `You asked me to remember the following message at ${
-          dcTimestamp(+reminder.date, "t")
-        }.\n${btWrap(reminder.message)}`,
+	title: "Reminder",
+	message: `You asked me to remember the following message at ${
+	  dcTimestamp(+reminder.date, "t")
+	}.\n${btWrap(reminder.message)}`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
   }
 };
 sendReminders();
-setInterval(sendReminders, parseInt(config.REMINDER_TIMEOUT));
+setInterval(sendReminders, parseInt(config.REMINDER_TIMEOUT) * 1000);
 
 const command: SlashCommand = {
   inDm: true,
