@@ -141,7 +141,7 @@ type CreateClashAPI = {
   startTimestamp: number;
   type: "PRIVATE";
 };
-type TestCase = {input: string, output: string}
+type TestCase = { input: string; output: string };
 
 const codingameReq = (file: string, body: string) =>
   fetch(new URL(file, "https://www.codingame.com").toString(), {
@@ -289,7 +289,11 @@ export class Clash {
     code:
       | string
       | ((
-        question: {statement: string, stubGenerator: string, testCases: TestCase[]},
+        question: {
+          statement: string;
+          stubGenerator: string;
+          testCases: TestCase[];
+        },
         language: (typeof this)["data"]["langs"][number],
       ) => string | Promise<string>),
     language?: (typeof this)["data"]["langs"][number],
@@ -315,29 +319,40 @@ export class Clash {
       );
       if (notOk(testSesh)) return true;
 
-      const questionObj: {statement?: string, stubGenerator?: string, testCases?: {inputBinaryId: number, outputBinaryId: number}[]} = (await testSesh.json()).currentQuestion?.question;
-      if (!questionObj || !questionObj.statement || !questionObj.stubGenerator || !questionObj.testCases || !(questionObj.testCases instanceof Array)) return true
+      const questionObj: {
+        statement?: string;
+        stubGenerator?: string;
+        testCases?: { inputBinaryId: number; outputBinaryId: number }[];
+      } = (await testSesh.json()).currentQuestion?.question;
+      if (
+        !questionObj || !questionObj.statement || !questionObj.stubGenerator ||
+        !questionObj.testCases || !(questionObj.testCases instanceof Array)
+      ) return true;
 
       const statement = questionObj.statement
-	.replace(/<style.*?>.*?<\/style>/gs, "")
-	.replace(/<[^>]+>/g, "");
+        .replace(/<style.*?>.*?<\/style>/gs, "")
+        .replace(/<[^>]+>/g, "");
       const testCases: TestCase[] = [];
 
       for (const i of questionObj.testCases) {
-	const inputReq = await fetch(`https://static.codingame.com/servlet/fileservlet?id=${i.inputBinaryId}`)
-	const outputReq = await fetch(`https://static.codingame.com/servlet/fileservlet?id=${i.outputBinaryId}`)
+        const inputReq = await fetch(
+          `https://static.codingame.com/servlet/fileservlet?id=${i.inputBinaryId}`,
+        );
+        const outputReq = await fetch(
+          `https://static.codingame.com/servlet/fileservlet?id=${i.outputBinaryId}`,
+        );
 
-	if (notOk(inputReq) || notOk(outputReq)) continue
-	testCases.push({
-	  input: await inputReq.text(),
-	  output: await outputReq.text(),
-	})
+        if (notOk(inputReq) || notOk(outputReq)) continue;
+        testCases.push({
+          input: await inputReq.text(),
+          output: await outputReq.text(),
+        });
       }
 
       resCode = await code({
-	statement: statement.trim(),
-	testCases,
-	stubGenerator: questionObj.stubGenerator
+        statement: statement.trim(),
+        testCases,
+        stubGenerator: questionObj.stubGenerator,
       }, language);
     } else {
       resCode = code;
@@ -359,34 +374,47 @@ export class Clash {
     return notOk(codeSubmit) || notOk(codeShare);
   }
   async submitAI() {
+    if (!this.clash.started) return;
     const chat = await this.submit(async (question, language) => {
       const chat = await initChat("gpt-4o-mini");
+
       const prompt = `
-Write the shortest possible code (in bytes). ${language}
+write shortest possible code with least amount of bytes in ${language}.
+Write only the code, in a markdown block. No additional text, or explainations.
+Use ${language}'s io. So for example, in ruby that'd be 'gets'/'ARGF'. Javascript is special, use 'readline()' there.
+Pay attention to the amount of input lines.
+Write your code with the least amount of bytes.
+The gamemode is ${
+  (this.clash as InGameClash).mode
+}. In the 'reverse' gamemode, you'll have to pay a lot of attention to the tests that will come later.
 
-Please submit your code in a markdown block only, with no explanations or additional text. Include line breaks before and after the markdown block.
-Please use ${language}'s input and output meganisms to get your input and outputs. E.g in ruby you'd use ARGF/gets for input, and puts/p (note that p only works for numbers) for output.
-In Javascript you'd have to use the custom function 'readline()' to get your input, this function is already in scope and ready to use.
-If the input is spread across multiple lines, treat it as if it is spread across multiple lines.
-
-The coding problem will follow:
+The coding problem is:
 ${question.statement}
 
-Here's a pseudocode to get started with: 
+You can start your code with the following (pseudocode)
 ${question.stubGenerator}
 
-And here are some testCases
-${question.testCases.map(v => `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`).join("\n\n\n")}
-      `;
-      const res = (await chat.fetchFull(prompt)).replace(/```[^\n]*([\s\S]*?)```/g, "$1");
+And these are the test cases.
+${
+        question.testCases.map((v) =>
+          `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`
+        ).join("\n\n")
+      }
+    `;
+
+      const res = (await chat.fetchFull(prompt)).replace(
+        /```[^\n]*([\s\S]*?)```/g,
+        "$1",
+      );
       console.log(
-	prompt, res
-      )
-      return res
+        prompt,
+        res,
+      );
+      return res;
     });
-    return chat
+    return chat;
   }
-	//
+  //
   public async fetch(handle?: string): Promise<this["data"] | undefined> {
     const hasHandle = handle !== undefined;
     if (!hasHandle && !this.clash.handle) return;
@@ -483,11 +511,13 @@ ${question.testCases.map(v => `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`).join("
           };
           await this.handler(this);
 
-          if (clashData.started &&
+          if (
+            clashData.started &&
             !clashData.finished &&
-            !started) {
+            !started
+          ) {
             started = true;
-	    console.log("Just started")
+            console.log("Just started");
             await this.submitAI();
           }
           if (clashData.finished) {
