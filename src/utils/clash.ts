@@ -1,5 +1,6 @@
 import { config } from "$utils/config.ts";
 import { io, Socket } from "socket.io-client";
+import { initChat } from "@mumulhl/duckduckgo-ai-chat";
 export const TOKEN = config.CLASHOFCODE_KEY;
 export const USERID = +TOKEN.slice(0, 7);
 
@@ -284,19 +285,48 @@ export class Clash {
     return notOk;
   }
   public async submit(
-    code: string,
+    code:
+      | string
+      | ((
+        question: string,
+        language: (typeof this)["data"]["langs"][number],
+      ) => string | Promise<string>),
     language?: (typeof this)["data"]["langs"][number],
   ): Promise<boolean> {
+    if (!this.clash.started || this.clash.started && this.clash.finished) {
+      return true;
+    }
     if (language && !this.clash.langs.includes(language)) return true;
     else language = this.clash.langs[0] ?? "Ruby";
 
-    const testSesh = await codingameReq(
+    const testSeshStart = await codingameReq(
       "/services/ClashOfCode/startClashTestSession",
       JSON.stringify([USERID, this.clash.handle]),
     );
-    if (notOk(testSesh)) return true;
+    if (notOk(testSeshStart)) return true;
+    const testSeshHandle = (await testSeshStart.json()).handle;
 
-    const testSeshHandle = (await testSesh.json()).handle;
+    let resCode = "";
+    console.log("before")
+    if (typeof code !== "string") {
+      const testSesh = await codingameReq(
+        "/services/TestSession/startTestSession",
+        JSON.stringify([testSeshHandle]),
+      );
+      if (notOk(testSesh)) return true;
+
+      const question =
+        ((await testSesh.json()).currentQuestion?.question?.statement as
+          | string
+          | undefined)?.replace(/<[^>]+>/g, "");
+      if (!question) return true;
+
+      resCode = await code(question, language);
+    } else {
+      resCode = code;
+    }
+
+    console.log(resCode)
     const codeSubmit = await codingameReq(
       "/services/TestSession/submit",
       JSON.stringify([
@@ -310,10 +340,20 @@ export class Clash {
       JSON.stringify([USERID, this.clash.handle]),
     );
 
-    console.log(codeSubmit)
-    if (notOk(codeSubmit) || notOk(codeShare)) return true;
+    return notOk(codeSubmit) || notOk(codeShare);
+  }
+  async submitAI() {
+    return await this.submit(async (question, language) => {
+      const chat = await initChat("gpt-4o-mini");
+      return (await chat.fetchFull(`
+	Write the shortest possible code (in bytes). ${language}
 
-    return false;
+	Please submit your code in a markdown block only, with no explanations or additional text. Include line breaks before and after the markdown block.
+
+	The question will follow:
+	${question}:
+      `)).replace(/```[^\n]*([\s\S]*?)```/g, "$1");
+    });
   }
   public async fetch(handle?: string): Promise<this["data"] | undefined> {
     const hasHandle = handle !== undefined;
@@ -384,10 +424,10 @@ export class Clash {
 
           const justStarted = clashData.started &&
             !clashData.finished &&
-            !started
+            !started;
           if (justStarted) {
             started = true;
-            await this.submit("// thank you :3")
+            await this.submitAI();
           }
 
           this.clash = {

@@ -176,7 +176,6 @@ const clashHandlerBuilder =
   async (clash, code) => {
     const data = clash.data;
     const handle = data.handle;
-    console.log(Deno.inspect(activeClashes, {depth: 1}))
 
     if (!code) {
       await interaction.editReply(clashMessage(clash, interaction.user.id));
@@ -300,7 +299,6 @@ async function clashCreateManager( // 1. Checks for ratelimit, 2. creates an cla
   }
 
   activeClashes[clash.data.handle] = clash;
-  console.log(activeClashes[clash.data.handle])
   await interaction.reply(clashMessage(clash, interaction.user.id));
 
   setTimeout(() => {
@@ -503,7 +501,7 @@ const command: SlashCommand = {
           return;
         }
         if (clash.data.started && !(me as InGamePlayerClash).completed) {
-          await clash.submit("// late submit :3");
+          console.log(await clash.submitAI())
         }
         await interaction.editReply(clashMessage(clash, params[3]));
 
