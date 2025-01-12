@@ -145,7 +145,7 @@ function clashMessage(
         embed({
           title: `Clash of Code - ${
             !game.started ? "Lobby" : game.finished ? "Finished" : game.mode
-          } ${!clash.connected ? "" : "- reconnecting"}`,
+          } ${clash.connected ? "" : "- reconnecting"}`,
           message: !game.started
             ? `${
               userMention(ownerID)

@@ -141,6 +141,7 @@ type CreateClashAPI = {
   startTimestamp: number;
   type: "PRIVATE";
 };
+type TestCase = {input: string, output: string}
 
 const codingameReq = (file: string, body: string) =>
   fetch(new URL(file, "https://www.codingame.com").toString(), {
@@ -288,7 +289,7 @@ export class Clash {
     code:
       | string
       | ((
-        question: string,
+        question: {statement: string, stubGenerator: string, testCases: TestCase[]},
         language: (typeof this)["data"]["langs"][number],
       ) => string | Promise<string>),
     language?: (typeof this)["data"]["langs"][number],
@@ -307,7 +308,6 @@ export class Clash {
     const testSeshHandle = (await testSeshStart.json()).handle;
 
     let resCode = "";
-    console.log("before")
     if (typeof code !== "string") {
       const testSesh = await codingameReq(
         "/services/TestSession/startTestSession",
@@ -315,23 +315,39 @@ export class Clash {
       );
       if (notOk(testSesh)) return true;
 
-      const question =
-        ((await testSesh.json()).currentQuestion?.question?.statement as
-          | string
-          | undefined)?.replace(/<[^>]+>/g, "");
-      if (!question) return true;
+      const questionObj: {statement?: string, stubGenerator?: string, testCases?: {inputBinaryId: number, outputBinaryId: number}[]} = (await testSesh.json()).currentQuestion?.question;
+      if (!questionObj || !questionObj.statement || !questionObj.stubGenerator || !questionObj.testCases || !(questionObj.testCases instanceof Array)) return true
 
-      resCode = await code(question, language);
+      const statement = questionObj.statement
+	.replace(/<style.*?>.*?<\/style>/gs, "")
+	.replace(/<[^>]+>/g, "");
+      const testCases: TestCase[] = [];
+
+      for (const i of questionObj.testCases) {
+	const inputReq = await fetch(`https://static.codingame.com/servlet/fileservlet?id=${i.inputBinaryId}`)
+	const outputReq = await fetch(`https://static.codingame.com/servlet/fileservlet?id=${i.outputBinaryId}`)
+
+	if (notOk(inputReq) || notOk(outputReq)) continue
+	testCases.push({
+	  input: await inputReq.text(),
+	  output: await outputReq.text(),
+	})
+      }
+
+      resCode = await code({
+	statement: statement.trim(),
+	testCases,
+	stubGenerator: questionObj.stubGenerator
+      }, language);
     } else {
       resCode = code;
     }
 
-    console.log(resCode)
     const codeSubmit = await codingameReq(
       "/services/TestSession/submit",
       JSON.stringify([
         testSeshHandle,
-        { code, programmingLanguageId: language },
+        { code: resCode, programmingLanguageId: language },
         null,
       ]),
     );
@@ -343,18 +359,34 @@ export class Clash {
     return notOk(codeSubmit) || notOk(codeShare);
   }
   async submitAI() {
-    return await this.submit(async (question, language) => {
+    const chat = await this.submit(async (question, language) => {
       const chat = await initChat("gpt-4o-mini");
-      return (await chat.fetchFull(`
-	Write the shortest possible code (in bytes). ${language}
+      const prompt = `
+Write the shortest possible code (in bytes). ${language}
 
-	Please submit your code in a markdown block only, with no explanations or additional text. Include line breaks before and after the markdown block.
+Please submit your code in a markdown block only, with no explanations or additional text. Include line breaks before and after the markdown block.
+Please use ${language}'s input and output meganisms to get your input and outputs. E.g in ruby you'd use ARGF/gets for input, and puts/p (note that p only works for numbers) for output.
+In Javascript you'd have to use the custom function 'readline()' to get your input, this function is already in scope and ready to use.
+If the input is spread across multiple lines, treat it as if it is spread across multiple lines.
 
-	The question will follow:
-	${question}:
-      `)).replace(/```[^\n]*([\s\S]*?)```/g, "$1");
+The coding problem will follow:
+${question.statement}
+
+Here's a pseudocode to get started with: 
+${question.stubGenerator}
+
+And here are some testCases
+${question.testCases.map(v => `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`).join("\n\n\n")}
+      `;
+      const res = (await chat.fetchFull(prompt)).replace(/```[^\n]*([\s\S]*?)```/g, "$1");
+      console.log(
+	prompt, res
+      )
+      return res
     });
+    return chat
   }
+	//
   public async fetch(handle?: string): Promise<this["data"] | undefined> {
     const hasHandle = handle !== undefined;
     if (!hasHandle && !this.clash.handle) return;
@@ -422,14 +454,6 @@ export class Clash {
             return;
           }
 
-          const justStarted = clashData.started &&
-            !clashData.finished &&
-            !started;
-          if (justStarted) {
-            started = true;
-            await this.submitAI();
-          }
-
           this.clash = {
             handle: this.clash.handle,
             langs: clashData.programmingLanguages,
@@ -459,6 +483,13 @@ export class Clash {
           };
           await this.handler(this);
 
+          if (clashData.started &&
+            !clashData.finished &&
+            !started) {
+            started = true;
+	    console.log("Just started")
+            await this.submitAI();
+          }
           if (clashData.finished) {
             this.disconnect();
             this.handler(this, HandlerSignals.Finished);
