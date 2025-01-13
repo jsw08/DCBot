@@ -376,12 +376,12 @@ export class Clash {
   async submitAI() {
     if (!this.clash.started) return;
     const chat = await this.submit(async (question, language) => {
-      const chat = await initChat("gpt-4o-mini");
+      const chat = await initChat("claude-3-haiku");
 
       const prompt = `
 write shortest possible code with least amount of bytes in ${language}.
 Write only the code, in a markdown block. No additional text, or explainations.
-Use ${language}'s io. So for example, in ruby that'd be 'gets'/'ARGF'. Javascript is special, use 'readline()' there.
+Use ${language}'s io. So for example, in ruby that'd be 'gets'/'ARGF' (ARGF IS ONLY BETTER IF YOU HANDLE MULTIPLE INPUTS). Javascript is special, use 'readline()' there.
 Pay attention to the amount of input lines.
 Write your code with the least amount of bytes.
 The gamemode is ${
@@ -396,7 +396,7 @@ ${question.stubGenerator}
 
 And these are the test cases.
 ${
-        question.testCases.map((v) =>
+        question.testCases.slice(0,2).map((v) =>
           `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`
         ).join("\n\n")
       }
@@ -405,10 +405,6 @@ ${
       const res = (await chat.fetchFull(prompt)).replace(
         /```[^\n]*([\s\S]*?)```/g,
         "$1",
-      );
-      console.log(
-        prompt,
-        res,
       );
       return res;
     });
