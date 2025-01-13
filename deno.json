@@ -1,11 +1,13 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch ./src/main.ts"
+    "dev": "deno run -A --watch ./src/main.ts",
+    "debug": "deno run --inspect -A --watch ./src/main.ts"
   },
   "nodeModulesDir": "manual",
   "imports": {
     "$/": "./src/",
     "$utils/": "./src/utils/",
+    "@mumulhl/duckduckgo-ai-chat": "jsr:@mumulhl/duckduckgo-ai-chat@^3.0.1",
 
     "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
     "@std/io": "jsr:@std/io@^0.225.0",

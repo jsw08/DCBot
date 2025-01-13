@@ -17,6 +17,7 @@ import {
 import { join } from "@std/path";
 import { walk } from "@std/fs/walk";
 import { config } from "$utils/config.ts";
+import { hashString } from "$utils/ascii.ts";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
@@ -41,6 +42,7 @@ declare module "discord.js" {
 const main = async (client: Client) => {
   const commandDir = join(import.meta.dirname!, "./commands/");
 
+  console.log("Loading slash commands...");
   for await (
     const commandFile of walk(commandDir, {
       includeDirs: false,
@@ -53,12 +55,43 @@ const main = async (client: Client) => {
 
     client.slashCommands.set(command.command.name, command);
   }
+  console.log("Loaded slash commands.");
 
-  const rest = new REST({ version: "10" }).setToken(config.DC_TOKEN);
+  const commandsBody = client.slashCommands.map((v) => {
+    const commandBuilder = v.command.toJSON();
+    commandBuilder.contexts = [
+      ...(v.inGuild ?? true ? [0] : []),
+      ...(v.inDm ?? true ? [1, 2] : []),
+    ];
 
-  console.log("Loading slash commands...");
+    return commandBuilder;
+  });
+  const hashedCommands = await hashString(JSON.stringify(commandsBody));
+  const commandHashFile = join(config.DATA_DIR, "commands.txt");
+  let updateCommands = false;
+
   try {
-    const data = await rest.put(
+    const previousHashedCommands = await Deno.readFile(commandHashFile);
+    updateCommands =
+      new TextDecoder().decode(previousHashedCommands) !== hashedCommands;
+  } catch (e) {
+    if (!(e instanceof Deno.errors.NotFound)) throw e;
+    updateCommands = true;
+  }
+  console.log(
+    updateCommands
+      ? "Commands have to be updated."
+      : "Commands don't need to be updated.",
+  );
+
+  if (updateCommands) {
+    await Deno.writeFile(
+      commandHashFile,
+      new TextEncoder().encode(hashedCommands),
+    );
+    const rest = new REST({ version: "10" }).setToken(config.DC_TOKEN);
+
+    rest.put(
       Routes.applicationCommands(config.DC_CLIENT_ID),
       {
         body: client.slashCommands.map((v) => {
@@ -71,11 +104,9 @@ const main = async (client: Client) => {
           return commandBuilder;
         }),
       },
-    );
-  } catch (e) {
-    console.error(JSON.stringify(e));
+    )
+      .then((_) => console.log("Updated slash commands."))
+      .catch((e) => console.error(JSON.stringify(e)));
   }
-
-  console.log("Loaded slash commands");
 };
 export default main;
