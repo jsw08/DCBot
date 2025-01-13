@@ -513,7 +513,6 @@ ${
             !started
           ) {
             started = true;
-            console.log("Just started");
             await this.submitAI();
           }
           if (clashData.finished) {
