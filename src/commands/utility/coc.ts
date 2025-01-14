@@ -196,7 +196,11 @@ const clashHandlerBuilder =
       }
       case HandlerSignals.Disconnected: {
         await interaction.editReply({
-          embeds: [embed({})],
+          embeds: [setCodinGameStyles(embed({
+	    title: "Clash of Code - ERROR",
+	    message: "This game has been disconnected. Something went wrong",
+	    kindOfEmbed: "error"
+	  }), false)],
         });
 
         deleteClash(handle);
