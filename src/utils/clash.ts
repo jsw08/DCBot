@@ -167,6 +167,7 @@ export type Handler = (
 export class Clash {
   declare private clash: LobbyClash | InGameClash;
   declare public handler: Handler;
+  public receiveSignals: boolean = true;
 
   declare private socket: Socket;
   declare private cancelClashInterval: number;
@@ -179,6 +180,10 @@ export class Clash {
   }
   get connected(): boolean {
     return this.socket?.connected ?? false;
+  }
+  private async runHandler(signal?: HandlerSignals) {
+    if (!this.receiveSignals) return
+    await this.handler(this, signal);
   }
 
   public static async createNew(
@@ -259,8 +264,7 @@ export class Clash {
         if (this.clash.started) clearInterval(this.cancelClashInterval);
         if (this.clash.players.length > 1) return;
 
-        await this.handler(this, HandlerSignals.LobbyTimedOut);
-        this.disconnect();
+        await this.disconnect(HandlerSignals.LobbyTimedOut);
       },
       5 * 1000 * 60,
     );
@@ -268,8 +272,9 @@ export class Clash {
     this.setupSocketEventHandlers();
   }
 
-  public disconnect() {
+  public async disconnect(signal?: HandlerSignals) {
     clearInterval(this.cancelClashInterval);
+    await this.runHandler(signal ?? HandlerSignals.Disconnected)
     this.socket.close();
   }
   public async start(): Promise<boolean> {
@@ -505,7 +510,7 @@ ${
                 })),
               }),
           };
-          await this.handler(this);
+          await this.runHandler();
 
           if (
             clashData.started &&
@@ -516,8 +521,7 @@ ${
             await this.submitAI();
           }
           if (clashData.finished) {
-            this.disconnect();
-            this.handler(this, HandlerSignals.Finished);
+            await this.disconnect(HandlerSignals.Finished);
           }
           break;
         }
@@ -528,11 +532,10 @@ ${
 
           const clashData = await this.fetch();
           if (!clashData) return;
-          await this.handler(this);
+          await this.runHandler();
 
           if (clashData.started && clashData.finished) {
-            this.disconnect();
-            this.handler(this, HandlerSignals.Finished);
+            await this.disconnect(HandlerSignals.Finished);
           }
           break;
         }
@@ -541,15 +544,15 @@ ${
 
     this.socket.on("disconnect", async (reason) => {
       if (reason.includes("io")) {
-        await this.handler(this, HandlerSignals.Disconnected);
+        await this.runHandler(HandlerSignals.Disconnected);
         return;
       }
 
-      await this.handler(this);
+      await this.runHandler();
     });
     this.socket.on("reconnect", async () => {
       await this.fetch();
-      await this.handler(this);
+      await this.runHandler();
     });
   }
 }

@@ -24,7 +24,6 @@ import {
   type GameMode, 
   type Language
 } from "$utils/clash.ts";
-import {  } from "$/utils/clash.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { embed } from "$utils/embed.ts";
 import { decodeSubset, encodeSubset } from "$utils/ascii.ts";
@@ -45,25 +44,13 @@ const ALL_GAMEMODE_COMBINATIONS: GameModes[] = [
   .slice(1)
   .map((i) => GAMEMODES.filter((_, j) => i & (1 << j)));
 
-const SIGNAL_RESPONSES: { [Key in HandlerSignals]?: BaseMessageOptions } = {
-  [HandlerSignals.LobbyTimedOut]: {
-    embeds: [setCodinGameStyles(
-      embed({
-        kindOfEmbed: "warning",
-        message: "This clash has timed out, please create a new one.",
-      }),
-      false,
-    )],
-  },
-};
-
 const activeClashes: { [x: string]: Clash } = {};
 let rateLimits: string[] = [];
 
 function deleteClash(handle: string): void {
   if (!Object.hasOwn(activeClashes, handle)) return;
 
-  activeClashes[handle].handler = () => {};
+  activeClashes[handle].receiveSignals = false;
   delete activeClashes[handle];
 }
 function setCodinGameStyles(
@@ -182,13 +169,17 @@ const clashHandlerBuilder =
     const data = clash.data;
     const handle = data.handle;
 
-    if (!code) {
+    if (code === undefined) {
       await interaction.editReply(clashMessage(clash, interaction.user.id));
       return;
     }
 
+    if ([HandlerSignals.Disconnected, HandlerSignals.Finished, HandlerSignals.LobbyTimedOut].includes(code)) {
+      deleteClash(handle)
+    }
     switch (code) {
       case HandlerSignals.InteractionTimedOut: {
+	activeClashes[handle].receiveSignals = false;
         await interaction.editReply({
           ...clashInteractionTimeoutMessage(interaction, clash),
         });
@@ -201,26 +192,26 @@ const clashHandlerBuilder =
 	    message: "This game has been disconnected. Something went wrong",
 	    kindOfEmbed: "error"
 	  }), false)],
+	  components: []
         });
-
-        deleteClash(handle);
         break;
       }
       case HandlerSignals.Finished: {
 	await interaction.editReply(clashMessage(clash, interaction.user.id));
-	deleteClash(handle)
 	break
       }
-      default: {
-        interaction.editReply({
-          content: "",
-          components: [],
-          embeds: [],
-          ...(Object.hasOwn(SIGNAL_RESPONSES, code)
-            ? SIGNAL_RESPONSES[code]
-            : {}),
-        });
-        break;
+      case HandlerSignals.LobbyTimedOut: {
+	deleteClash(handle)
+	await interaction.editReply({
+	  components: [],
+	  embeds: [setCodinGameStyles(
+	    embed({
+	      kindOfEmbed: "warning",
+	      message: "This clash has timed out, please create a new one.",
+	    }),
+	    false,
+	  )],
+	})
       }
     }
   };
@@ -315,7 +306,7 @@ async function clashCreateManager( // 1. Checks for ratelimit, 2. creates an cla
       clash,
       HandlerSignals.InteractionTimedOut,
     );
-  }, 10 * 1000 * 60);
+  }, 0.10 * 1000 * 60);
 }
 
 addSigListener(async () => {
@@ -449,7 +440,7 @@ const command: SlashCommand = {
         break;
       }
       case "continue": {
-	await interaction.deferReply();
+	await interaction.deferUpdate();
         const notExist = () =>
           interaction.reply({
             embeds: [embed({
@@ -480,6 +471,7 @@ const command: SlashCommand = {
         if (Object.hasOwn(activeClashes, params[2])) {
           clash = activeClashes[params[2]];
           clash.handler = clashHandlerBuilder(interaction);
+	  clash.receiveSignals = true;
         } else {
           clash = await Clash.createExisting(
             params[2],
