@@ -6,7 +6,7 @@
 ![Deno JS](https://img.shields.io/badge/deno%20js-000000?style=for-the-badge&logo=deno&logoColor=white)
 ![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)
 
-> A relatively simple Discord bot, made with Deno, TS and Discord.JS.
+> A relatively simple Discord bot with random commands I needed, made with Deno, TS and Discord.JS.
 
 > [!IMPORTANT]
 > This bot was made as a learning project that I could use for personal use with
