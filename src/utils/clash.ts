@@ -182,7 +182,7 @@ export class Clash {
     return this.socket?.connected ?? false;
   }
   private async runHandler(signal?: HandlerSignals) {
-    if (!this.receiveSignals) return
+    if (!this.receiveSignals) return;
     await this.handler(this, signal);
   }
 
@@ -274,7 +274,7 @@ export class Clash {
 
   public async disconnect(signal?: HandlerSignals) {
     clearInterval(this.cancelClashInterval);
-    await this.runHandler(signal ?? HandlerSignals.Disconnected)
+    await this.runHandler(signal ?? HandlerSignals.Disconnected);
     this.socket.close();
   }
   public async start(): Promise<boolean> {
@@ -390,8 +390,8 @@ Use ${language}'s io. So for example, in ruby that'd be 'gets'/'ARGF' (ARGF IS O
 Pay attention to the amount of input lines.
 Write your code with the least amount of bytes.
 The gamemode is ${
-  (this.clash as InGameClash).mode
-}. In the 'reverse' gamemode, you'll have to pay a lot of attention to the tests that will come later.
+        (this.clash as InGameClash).mode
+      }. In the 'reverse' gamemode, you'll have to pay a lot of attention to the tests that will come later.
 
 The coding problem is:
 ${question.statement}
@@ -401,7 +401,7 @@ ${question.stubGenerator}
 
 And these are the test cases.
 ${
-        question.testCases.slice(0,2).map((v) =>
+        question.testCases.slice(0, 2).map((v) =>
           `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`
         ).join("\n\n")
       }

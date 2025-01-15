@@ -1,7 +1,11 @@
 import {
   ActionRowBuilder,
   ButtonBuilder,
+  codeBlock,
   SlashCommandBuilder,
+  time,
+  TimestampStyles as TimeS,
+  TimestampStylesString,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
@@ -30,12 +34,8 @@ type Reminder = {
   date: string;
 };
 
-const btWrap = (v: string) => "```" + v + "```";
-const dcTimestamp = (date: number, type: string) =>
-  `<t:${Math.floor(date / 1000)}:${type}>`;
-
 const sendReminders = () => {
-  if (!db.open) return
+  if (!db.open) return;
 
   const reminders = db
     .sql`SELECT message, id, discord_id, date FROM reminders WHERE date < unixepoch('now')`;
@@ -43,10 +43,10 @@ const sendReminders = () => {
     const reminder = i as Reminder;
     client.users.send(reminder.discord_id, {
       embeds: [embed({
-	title: "Reminder",
-	message: `You asked me to remember the following message at ${
-	  dcTimestamp(+reminder.date, "t")
-	}.\n${btWrap(reminder.message)}`,
+        title: "Reminder",
+        message: `You asked me to remember the following message at ${
+          time(new Date(reminder.date), TimeS.RelativeTime)
+        }.\n${codeBlock(reminder.message)}`,
       })],
     });
     db.exec("DELETE FROM reminders WHERE id = :id", { id: reminder.id });
@@ -113,9 +113,9 @@ const command: SlashCommand = {
       embeds: [embed({
         title: "Reminder - confirmation",
         message: `Would you like to be reminded of the following message at ${
-          dcTimestamp(date.getTime(), "f")
+          time(date, TimeS.ShortDateTime)
         }? You have two minutes to decide.\n-# tip: (ignore this message to cancel, you can still create a new reminder while this one is awaiting.)\n${
-          btWrap(message)
+          codeBlock(message)
         }`,
 
         kindOfEmbed: "normal",
@@ -143,7 +143,7 @@ const command: SlashCommand = {
             title: "Reminder - confirmation",
             message:
               `Your reminder has been successfully set! It will trigger ${
-                dcTimestamp(date.getTime(), "R")
+                time(date, TimeS.RelativeTime)
               }.`,
             kindOfEmbed: "success",
           })],

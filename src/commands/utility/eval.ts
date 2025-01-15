@@ -1,6 +1,7 @@
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
+  codeBlock,
   InteractionReplyOptions,
   ModalActionRowComponentBuilder,
   ModalBuilder,
@@ -25,12 +26,23 @@ const codeReplyOptions = (
     .join("\n");
 
   return {
-    embeds: [embed({
-      title: "Typescript interpreter.",
-      kindOfEmbed: "success",
-      message:
-        `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
-    })],
+    embeds: [
+      embed({
+        title: "Typescript interpreter.",
+        kindOfEmbed: "success",
+        message:
+          `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
+      }).addFields(
+        {
+          name: "Input",
+          value: codeBlock("ts", input),
+        },
+        ...output.map((v) => ({
+          name: "Ouput",
+          value: codeBlock("ts", v),
+        })),
+      ),
+    ],
   };
 };
 const codeHandler = async (
@@ -62,11 +74,14 @@ const codeHandler = async (
     await interaction.followUp({
       embeds: [embed({
         title: "Error!",
-        message: `\`\`\`js\n${err.name}: ${err.message}\nLine: ${
-          err.stack
-            ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
-            : ""
-        }\`\`\``,
+        message: codeBlock(
+          "ts",
+          `${err.name}: ${err.message}\nLine: ${
+            err.stack
+              ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
+              : ""
+          }`,
+        ),
         kindOfEmbed: "error",
       })],
       components: [
