@@ -15,14 +15,14 @@ import {
 import {
   Clash,
   type CommonPlayerClash,
+  type GameMode,
   GAMEMODES,
   type Handler,
   HandlerSignals,
   type InGamePlayerClash,
+  type Language,
   LANGUAGES,
   USERID,
-  type GameMode, 
-  type Language
 } from "$utils/clash.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import { embed } from "$utils/embed.ts";
@@ -31,8 +31,8 @@ import ms from "ms";
 import { addSigListener } from "$utils/sighandler.ts";
 import { spreadEvenlyFields } from "$utils/formatting.ts";
 
-type GameModes = GameMode[]
-type Languages = Language[]
+type GameModes = GameMode[];
+type Languages = Language[];
 
 const LONGEST_LANGUAGE = LANGUAGES.toSorted((a, b) => a.length - b.length).at(
   -1,
@@ -111,7 +111,7 @@ function clashMessage(
         return `${p.rank}\\. ${status} ${p.nickname}${stats}`;
       })
     : game.players.map((p) => `- ${p.nickname}`);
-  const languages = game.langs.length === 0 ? ["All"] : game.langs; 
+  const languages = game.langs.length === 0 ? ["All"] : game.langs;
 
   const fields: APIEmbedField[] = [
     spreadEvenlyFields(
@@ -174,12 +174,18 @@ const clashHandlerBuilder =
       return;
     }
 
-    if ([HandlerSignals.Disconnected, HandlerSignals.Finished, HandlerSignals.LobbyTimedOut].includes(code)) {
-      deleteClash(handle)
+    if (
+      [
+        HandlerSignals.Disconnected,
+        HandlerSignals.Finished,
+        HandlerSignals.LobbyTimedOut,
+      ].includes(code)
+    ) {
+      deleteClash(handle);
     }
     switch (code) {
       case HandlerSignals.InteractionTimedOut: {
-	activeClashes[handle].receiveSignals = false;
+        activeClashes[handle].receiveSignals = false;
         await interaction.editReply({
           ...clashInteractionTimeoutMessage(interaction, clash),
         });
@@ -187,31 +193,34 @@ const clashHandlerBuilder =
       }
       case HandlerSignals.Disconnected: {
         await interaction.editReply({
-          embeds: [setCodinGameStyles(embed({
-	    title: "Clash of Code - ERROR",
-	    message: "This game has been disconnected. Something went wrong",
-	    kindOfEmbed: "error"
-	  }), false)],
-	  components: []
+          embeds: [setCodinGameStyles(
+            embed({
+              title: "Clash of Code - ERROR",
+              message: "This game has been disconnected. Something went wrong",
+              kindOfEmbed: "error",
+            }),
+            false,
+          )],
+          components: [],
         });
         break;
       }
       case HandlerSignals.Finished: {
-	await interaction.editReply(clashMessage(clash, interaction.user.id));
-	break
+        await interaction.editReply(clashMessage(clash, interaction.user.id));
+        break;
       }
       case HandlerSignals.LobbyTimedOut: {
-	deleteClash(handle)
-	await interaction.editReply({
-	  components: [],
-	  embeds: [setCodinGameStyles(
-	    embed({
-	      kindOfEmbed: "warning",
-	      message: "This clash has timed out, please create a new one.",
-	    }),
-	    false,
-	  )],
-	})
+        deleteClash(handle);
+        await interaction.editReply({
+          components: [],
+          embeds: [setCodinGameStyles(
+            embed({
+              kindOfEmbed: "warning",
+              message: "This clash has timed out, please create a new one.",
+            }),
+            false,
+          )],
+        });
       }
     }
   };
@@ -440,7 +449,7 @@ const command: SlashCommand = {
         break;
       }
       case "continue": {
-	await interaction.deferUpdate();
+        await interaction.deferUpdate();
         const notExist = () =>
           interaction.reply({
             embeds: [embed({
@@ -471,7 +480,7 @@ const command: SlashCommand = {
         if (Object.hasOwn(activeClashes, params[2])) {
           clash = activeClashes[params[2]];
           clash.handler = clashHandlerBuilder(interaction);
-	  clash.receiveSignals = true;
+          clash.receiveSignals = true;
         } else {
           clash = await Clash.createExisting(
             params[2],
@@ -501,7 +510,9 @@ const command: SlashCommand = {
           });
           return;
         }
-        if (clash.data.started && !(me as InGamePlayerClash).completed) await clash.submitAI()
+        if (clash.data.started && !(me as InGamePlayerClash).completed) {
+          await clash.submitAI();
+        }
         await interaction.editReply(clashMessage(clash, params[3]));
 
         if (

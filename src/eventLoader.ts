@@ -4,6 +4,7 @@ import { join } from "@std/path/join";
 export interface BotEvent {
   name: string;
   once?: boolean | false;
+  // @ts-ignore ehhhh
   execute: (...args: any[]) => void;
 }
 

@@ -1,25 +1,14 @@
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
+  codeBlock,
   SlashCommandBuilder,
+  time,
+  TimestampStyles,
+  TimestampStylesString,
 } from "discord.js";
 import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
-import { ChatInputCommandInteraction } from "discord.js";
 import { parseDate } from "chrono-node";
 import { chronoErrorReply } from "$utils/chrono.ts";
-
-const errorMessage = (
-  interaction: ChatInputCommandInteraction,
-  message: string,
-): void => {
-  interaction.reply({
-    embeds: [embed({ title: "Error", message: message, kindOfEmbed: "error" })],
-    ephemeral: true,
-  });
-  return;
-};
 
 const command: SlashCommand = {
   inDm: true,
@@ -43,15 +32,12 @@ const command: SlashCommand = {
           "What kind of discord date timestamp it should generate.",
         )
         .setRequired(true)
-        .addChoices([
-          { name: "short time", value: "t" },
-          { name: "long time", value: "T" },
-          { name: "short date", value: "d" },
-          { name: "long date", value: "D" },
-          { name: "long date with short time", value: "f" },
-          { name: "long date with day of week and short time", value: "F" },
-          { name: "relative", value: "R" },
-        ])
+        .addChoices(
+          Object.entries(TimestampStyles).map((v) => ({
+            name: v[0],
+            value: v[1],
+          })),
+        )
     ),
   execute: (interaction) => {
     const type = interaction.options.getString("type", true);
@@ -62,12 +48,11 @@ const command: SlashCommand = {
       return;
     }
 
-    const dcTimestamp = `<t:${Math.floor(date.getTime() / 1000)}:${type}>`;
-    const bt = "```"; // backticks
+    const dcTimestamp = time(new Date(date), type as TimestampStylesString);
     interaction.reply({
       embeds: [embed({
         title: "Timestamp generator",
-        message: `${bt}${dcTimestamp}${bt}\n${dcTimestamp}`,
+        message: `${codeBlock(dcTimestamp)}\n${dcTimestamp}`,
       })],
       ephemeral: true,
     });
