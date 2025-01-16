@@ -90,7 +90,7 @@ const typstRender = async (
   try {
     await typstWriter.write(new TextEncoder()
       .encode(`
-	#set page(height: auto, width: auto, margin: 0em${
+	#set page(height: auto, width: auto, margin: 0.5em${
         transparant ? ", fill: none" : ""
       })
 	${transparant ? "#set text(fill: white)" : ""}
