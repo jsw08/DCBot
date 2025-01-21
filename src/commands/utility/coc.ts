@@ -315,7 +315,7 @@ async function clashCreateManager( // 1. Checks for ratelimit, 2. creates an cla
       clash,
       HandlerSignals.InteractionTimedOut,
     );
-  }, 0.10 * 1000 * 60);
+  }, 10 * 1000 * 60);
 }
 
 addSigListener(async () => {
