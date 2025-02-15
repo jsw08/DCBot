@@ -72,11 +72,9 @@ const typstRender = async (
       "-f",
       "png",
       "--input",
-      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} ${
-        formatDate(now.getDate())
-      } ${formatDate(now.getHours())} ${formatDate(now.getMinutes())} ${
-        formatDate(now.getSeconds())
-      }`}`,
+      `now=${`${now.getFullYear()} ${formatDate(now.getMonth() + 1)} \
+${formatDate(now.getDate())} ${formatDate(now.getHours())} \
+${formatDate(now.getMinutes())} ${formatDate(now.getSeconds())}`}`,
       "-",
       outputPath,
     ],
