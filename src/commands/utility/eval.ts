@@ -15,6 +15,71 @@ import { embed } from "$utils/embed.ts";
 import { SlashCommandSubcommandBuilder } from "discord.js";
 import { delButtonRow } from "$utils/deleteBtn.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import ts from "typescript";
+
+async function tseval(code: string) {
+  const sourceFile = ts.createSourceFile("temp.ts", code, ts.ScriptTarget.ESNext, true);
+
+  let lastExpressionNode: ts.ExpressionStatement | null = null;
+
+  function findNodes(node: ts.Node) {
+    if (ts.isExpressionStatement(node)) {
+      lastExpressionNode = node;
+    }
+    ts.forEachChild(node, findNodes);
+  }
+
+  findNodes(sourceFile);
+
+  const transformer = <T extends ts.Node>(context: ts.TransformationContext) => (rootNode: T) => {
+    function visit(node: ts.Node): ts.Node {
+      if (node === lastExpressionNode && ts.isExpressionStatement(node)) {
+        if (
+          ts.isCallExpression(node.expression) &&
+          ts.isPropertyAccessExpression(node.expression.expression) &&
+          ts.isIdentifier(node.expression.expression.expression) &&
+          node.expression.expression.expression.text === "results" &&
+          node.expression.expression.name.text === "push"
+        ) {
+          return node;
+        }
+        return ts.factory.createExpressionStatement(
+          ts.factory.createCallExpression(
+            ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier("results"),
+              "push"
+            ),
+            undefined,
+            [node.expression]
+          )
+        );
+      }
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+        const expr = node.expression;
+        if (expr.name.text === "log" && ts.isIdentifier(expr.expression) && expr.expression.text === "console") {
+          return ts.factory.createExpressionStatement(
+            ts.factory.createCallExpression(
+              ts.factory.createPropertyAccessExpression(
+                ts.factory.createIdentifier("results"),
+                "push"
+              ),
+              undefined,
+              node.arguments
+            )
+          );
+        }
+      }
+      return ts.visitEachChild(node, visit, context);
+    }
+    return ts.visitNode(rootNode, visit);
+  };
+
+  const transformed = ts.transform(sourceFile, [transformer]);
+  const printer = ts.createPrinter();
+  const modifiedCode = printer.printFile(transformed.transformed[0] as ts.SourceFile);
+
+  return (await import('data:application/typescript,' + encodeURIComponent(`const results: string[] = [];\nawait ((async ()=>{${modifiedCode}})());\nexport default results;`))).default;
+}
 
 const codeReplyOptions = (
   input: string,
@@ -30,8 +95,6 @@ const codeReplyOptions = (
       embed({
         title: "Typescript interpreter.",
         kindOfEmbed: "success",
-        message:
-          `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
       }).addFields(
         {
           name: "Input",
@@ -39,7 +102,7 @@ const codeReplyOptions = (
         },
         ...output.map((v) => ({
           name: "Ouput",
-          value: codeBlock("ts", v),
+          value: codeBlock("ts", Deno.inspect(v, { compact: false, depth: 2 })),
         })),
       ),
     ],
@@ -54,11 +117,7 @@ const codeHandler = async (
   const evalCode = async (code: string): Promise<string[]> => {
     const updatedCode = code.replace(/console\.\w+/g, "results.push");
 
-    if (code.includes("await")) {
-      return [await eval(`(async () => { ${updatedCode} })()`)];
-    } else {
-      return [await eval(updatedCode)];
-    }
+    return await tseval(updatedCode);
   };
 
   try {
@@ -76,10 +135,9 @@ const codeHandler = async (
         title: "Error!",
         message: codeBlock(
           "ts",
-          `${err.name}: ${err.message}\nLine: ${
-            err.stack
-              ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
-              : ""
+          `${err.name}: ${err.message.replaceAll(/(The module's source code could not be parsed: )|(data:application\/typescript,.+?:)/g, '')}\nLine: ${err.stack
+            ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
+            : ""
           }`,
         ),
         kindOfEmbed: "error",
