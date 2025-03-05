@@ -17,7 +17,7 @@ import { delButtonRow } from "$utils/deleteBtn.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import ts from "typescript";
 
-async function tseval(code: string) {
+async function tseval(code: string, interaction: ChatInputCommandInteraction | ModalSubmitInteraction): Promise<string[]> {
   const sourceFile = ts.createSourceFile("temp.ts", code, ts.ScriptTarget.ESNext, true);
 
   let lastExpressionNode: ts.ExpressionStatement | null = null;
@@ -28,68 +28,71 @@ async function tseval(code: string) {
     }
     ts.forEachChild(node, findNodes);
   }
-
   findNodes(sourceFile);
 
-  const transformer = <T extends ts.Node>(context: ts.TransformationContext) => (rootNode: T) => {
-    function visit(node: ts.Node): ts.Node {
-      if (node === lastExpressionNode && ts.isExpressionStatement(node)) {
-        if (
-          ts.isCallExpression(node.expression) &&
-          ts.isPropertyAccessExpression(node.expression.expression) &&
-          ts.isIdentifier(node.expression.expression.expression) &&
-          node.expression.expression.expression.text === "results" &&
-          node.expression.expression.name.text === "push"
-        ) {
-          return node;
-        }
-        return ts.factory.createExpressionStatement(
-          ts.factory.createCallExpression(
-            ts.factory.createPropertyAccessExpression(
-              ts.factory.createIdentifier("results"),
-              "push"
-            ),
-            undefined,
-            [node.expression]
-          )
+  const transformer = <T extends ts.Node>(context: ts.TransformationContext) => {
+    const visit = (node: ts.Node): ts.Node => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.getText() === "console" &&
+        node.expression.name.getText() === "log"
+      ) {
+        return ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(
+            ts.factory.createIdentifier("results"),
+            "push"
+          ),
+          undefined,
+          node.arguments
         );
       }
-      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-        const expr = node.expression;
-        if (expr.name.text === "log" && ts.isIdentifier(expr.expression) && expr.expression.text === "console") {
-          return ts.factory.createExpressionStatement(
-            ts.factory.createCallExpression(
-              ts.factory.createPropertyAccessExpression(
-                ts.factory.createIdentifier("results"),
-                "push"
-              ),
-              undefined,
-              node.arguments
-            )
-          );
-        }
-      }
       return ts.visitEachChild(node, visit, context);
-    }
-    return ts.visitNode(rootNode, visit);
+    };
+    return (node: T) => ts.visitNode(node, visit);
   };
 
-  const transformed = ts.transform(sourceFile, [transformer]);
-  const printer = ts.createPrinter();
-  const modifiedCode = printer.printFile(transformed.transformed[0] as ts.SourceFile);
+  let transformer2;
+  if (lastExpressionNode) {
+    const expr = lastExpressionNode.expression;
+    const isConsoleLog =
+      ts.isCallExpression(expr) &&
+      ts.isPropertyAccessExpression(expr.expression) &&
+      expr.expression.name.getText() === "log" &&
+      expr.expression.expression.getText() === "console";
 
-  return (await import('data:application/typescript,' + encodeURIComponent(`const results: string[] = [];\nawait ((async ()=>{${modifiedCode}})());\nexport default results;`))).default;
+    if (!isConsoleLog) {
+      const wrappedStmt = ts.factory.createExpressionStatement(
+        ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(
+            ts.factory.createIdentifier("results"),
+            "push"
+          ),
+          undefined,
+          [expr]
+        )
+      );
+
+      transformer2 = <T extends ts.Node>(
+        context: ts.TransformationContext
+      ) => {
+        const visitor = (node: ts.Node): ts.Node => {
+          if (node === lastExpressionNode) return wrappedStmt;
+          return ts.visitEachChild(node, visitor, context);
+        };
+        return (node: T) => ts.visitNode(node, visitor);
+      };
+    }
+  }
+
+  const modifiedCode = ts.createPrinter().printFile(ts.transform(sourceFile, [transformer, ...(transformer2 ? [transformer2] : [])]).transformed[0]);
+  return (await (await import('data:application/typescript,' + encodeURIComponent(`export async function run(interaction, client) { const results: string[] = [];\nlet result = await ((async ()=>{${modifiedCode}})());\nif (result) results.push(result);\nreturn results; }`))).run(interaction, interaction.client));
 }
 
 const codeReplyOptions = (
   input: string,
   output: string[],
 ): InteractionReplyOptions => {
-  const bt = "```";
-  const out = output
-    .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
-    .join("\n");
-
   return {
     embeds: [
       embed({
@@ -114,18 +117,13 @@ const codeHandler = async (
   showOutput?: boolean | null,
 ): Promise<void> => {
   const results: string[] = [];
-  const evalCode = async (code: string): Promise<string[]> => {
-    const updatedCode = code.replace(/console\.\w+/g, "results.push");
-
-    return await tseval(updatedCode);
-  };
 
   try {
     if (showOutput === false) {
       await interaction.deleteReply();
-      results.push(...await evalCode(code));
+      results.push(...await tseval(code, interaction));
     } else {
-      results.push(...await evalCode(code));
+      results.push(...await tseval(code, interaction));
       await interaction.followUp(codeReplyOptions(code, results));
     }
   } catch (e) {
