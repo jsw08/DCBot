@@ -522,8 +522,8 @@ const command: SlashCommand = {
             (clash.data.endDate.getTime() - Date.now() > 10 * 1000 * 60)
         ) {
           setTimeout(() => {
-	    if (!Object.hasOwn(activeClashes, clash.data.handle)) return 
-	    activeClashes[clash.data.handle].handler(
+            if (!Object.hasOwn(activeClashes, clash.data.handle)) return;
+            activeClashes[clash.data.handle].handler(
               clash,
               HandlerSignals.InteractionTimedOut,
             );

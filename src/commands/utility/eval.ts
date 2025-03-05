@@ -17,8 +17,16 @@ import { delButtonRow } from "$utils/deleteBtn.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import ts from "typescript";
 
-async function tseval(code: string, interaction: ChatInputCommandInteraction | ModalSubmitInteraction): Promise<string[]> {
-  const sourceFile = ts.createSourceFile("temp.ts", code, ts.ScriptTarget.ESNext, true);
+async function tseval(
+  code: string,
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+): Promise<string[]> {
+  const sourceFile = ts.createSourceFile(
+    "temp.ts",
+    code,
+    ts.ScriptTarget.ESNext,
+    true,
+  );
 
   let lastExpressionNode: ts.ExpressionStatement | null = null;
 
@@ -30,7 +38,9 @@ async function tseval(code: string, interaction: ChatInputCommandInteraction | M
   }
   findNodes(sourceFile);
 
-  const transformer = <T extends ts.Node>(context: ts.TransformationContext) => {
+  const transformer = <T extends ts.Node>(
+    context: ts.TransformationContext,
+  ) => {
     const visit = (node: ts.Node): ts.Node => {
       if (
         ts.isCallExpression(node) &&
@@ -41,10 +51,10 @@ async function tseval(code: string, interaction: ChatInputCommandInteraction | M
         return ts.factory.createCallExpression(
           ts.factory.createPropertyAccessExpression(
             ts.factory.createIdentifier("results"),
-            "push"
+            "push",
           ),
           undefined,
-          node.arguments
+          node.arguments,
         );
       }
       return ts.visitEachChild(node, visit, context);
@@ -55,8 +65,7 @@ async function tseval(code: string, interaction: ChatInputCommandInteraction | M
   let transformer2;
   if (lastExpressionNode) {
     const expr = lastExpressionNode.expression;
-    const isConsoleLog =
-      ts.isCallExpression(expr) &&
+    const isConsoleLog = ts.isCallExpression(expr) &&
       ts.isPropertyAccessExpression(expr.expression) &&
       expr.expression.name.getText() === "log" &&
       expr.expression.expression.getText() === "console";
@@ -66,15 +75,15 @@ async function tseval(code: string, interaction: ChatInputCommandInteraction | M
         ts.factory.createCallExpression(
           ts.factory.createPropertyAccessExpression(
             ts.factory.createIdentifier("results"),
-            "push"
+            "push",
           ),
           undefined,
-          [expr]
-        )
+          [expr],
+        ),
       );
 
       transformer2 = <T extends ts.Node>(
-        context: ts.TransformationContext
+        context: ts.TransformationContext,
       ) => {
         const visitor = (node: ts.Node): ts.Node => {
           if (node === lastExpressionNode) return wrappedStmt;
@@ -85,8 +94,18 @@ async function tseval(code: string, interaction: ChatInputCommandInteraction | M
     }
   }
 
-  const modifiedCode = ts.createPrinter().printFile(ts.transform(sourceFile, [transformer, ...(transformer2 ? [transformer2] : [])]).transformed[0]);
-  return (await (await import('data:application/typescript,' + encodeURIComponent(`export async function run(interaction, client) { const results: string[] = [];\nlet result = await ((async ()=>{${modifiedCode}})());\nif (result) results.push(result);\nreturn results; }`))).run(interaction, interaction.client));
+  const modifiedCode = ts.createPrinter().printFile(
+    ts.transform(sourceFile, [
+      transformer,
+      ...(transformer2 ? [transformer2] : []),
+    ]).transformed[0],
+  );
+  return (await (await import(
+    "data:application/typescript," +
+      encodeURIComponent(
+        `export async function run(interaction, client) { const results: string[] = [];\nlet result = await ((async ()=>{${modifiedCode}})());\nif (result) results.push(result);\nreturn results; }`,
+      )
+  )).run(interaction, interaction.client));
 }
 
 const codeReplyOptions = (
@@ -133,9 +152,15 @@ const codeHandler = async (
         title: "Error!",
         message: codeBlock(
           "ts",
-          `${err.name}: ${err.message.replaceAll(/(The module's source code could not be parsed: )|(data:application\/typescript,.+?:)/g, '')}\nLine: ${err.stack
-            ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
-            : ""
+          `${err.name}: ${
+            err.message.replaceAll(
+              /(The module's source code could not be parsed: )|(data:application\/typescript,.+?:)/g,
+              "",
+            )
+          }\nLine: ${
+            err.stack
+              ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
+              : ""
           }`,
         ),
         kindOfEmbed: "error",
