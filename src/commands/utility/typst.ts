@@ -155,7 +155,8 @@ const typstHandler = async (
     interaction.followUp({
       embeds: [embed({
         title: "Typst",
-        message: `Error while using running typst (${typst.error}).` + codeBlock((typst.errorMsg ?? "").replaceAll("`", "")), // IDC that it changes your error.
+        message: `Error while using running typst (${typst.error}).` +
+          codeBlock((typst.errorMsg ?? "").replaceAll("`", "")), // IDC that it changes your error.
         kindOfEmbed: "error",
       })],
       components: [

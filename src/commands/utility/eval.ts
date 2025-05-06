@@ -15,23 +15,108 @@ import { embed } from "$utils/embed.ts";
 import { SlashCommandSubcommandBuilder } from "discord.js";
 import { delButtonRow } from "$utils/deleteBtn.ts";
 import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import ts from "typescript";
+
+async function tseval(
+  code: string,
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+): Promise<string[]> {
+  const sourceFile = ts.createSourceFile(
+    "temp.ts",
+    code,
+    ts.ScriptTarget.ESNext,
+    true,
+  );
+
+  let lastExpressionNode: ts.ExpressionStatement | null = null;
+
+  function findNodes(node: ts.Node) {
+    if (ts.isExpressionStatement(node)) {
+      lastExpressionNode = node;
+    }
+    ts.forEachChild(node, findNodes);
+  }
+  findNodes(sourceFile);
+
+  const transformer = <T extends ts.Node>(
+    context: ts.TransformationContext,
+  ) => {
+    const visit = (node: ts.Node): ts.Node => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.getText() === "console" &&
+        node.expression.name.getText() === "log"
+      ) {
+        return ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(
+            ts.factory.createIdentifier("results"),
+            "push",
+          ),
+          undefined,
+          node.arguments,
+        );
+      }
+      return ts.visitEachChild(node, visit, context);
+    };
+    return (node: T) => ts.visitNode(node, visit);
+  };
+
+  let transformer2;
+  if (lastExpressionNode) {
+    const expr = lastExpressionNode.expression;
+    const isConsoleLog = ts.isCallExpression(expr) &&
+      ts.isPropertyAccessExpression(expr.expression) &&
+      expr.expression.name.getText() === "log" &&
+      expr.expression.expression.getText() === "console";
+
+    if (!isConsoleLog) {
+      const wrappedStmt = ts.factory.createExpressionStatement(
+        ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(
+            ts.factory.createIdentifier("results"),
+            "push",
+          ),
+          undefined,
+          [expr],
+        ),
+      );
+
+      transformer2 = <T extends ts.Node>(
+        context: ts.TransformationContext,
+      ) => {
+        const visitor = (node: ts.Node): ts.Node => {
+          if (node === lastExpressionNode) return wrappedStmt;
+          return ts.visitEachChild(node, visitor, context);
+        };
+        return (node: T) => ts.visitNode(node, visitor);
+      };
+    }
+  }
+
+  const modifiedCode = ts.createPrinter().printFile(
+    ts.transform(sourceFile, [
+      transformer,
+      ...(transformer2 ? [transformer2] : []),
+    ]).transformed[0],
+  );
+  return (await (await import(
+    "data:application/typescript," +
+      encodeURIComponent(
+        `export async function run(interaction, client) { const results: string[] = [];\nlet result = await ((async ()=>{${modifiedCode}})());\nif (result) results.push(result);\nreturn results; }`,
+      )
+  )).run(interaction, interaction.client));
+}
 
 const codeReplyOptions = (
   input: string,
   output: string[],
 ): InteractionReplyOptions => {
-  const bt = "```";
-  const out = output
-    .map((e) => `${Deno.inspect(e, { compact: false, depth: 2 })}`)
-    .join("\n");
-
   return {
     embeds: [
       embed({
         title: "Typescript interpreter.",
         kindOfEmbed: "success",
-        message:
-          `## Input \n${bt}ts\n${input}\n${bt}\n## Output\n${bt}ts\n${out}${bt}`,
       }).addFields(
         {
           name: "Input",
@@ -39,7 +124,7 @@ const codeReplyOptions = (
         },
         ...output.map((v) => ({
           name: "Ouput",
-          value: codeBlock("ts", v),
+          value: codeBlock("ts", Deno.inspect(v, { compact: false, depth: 2 })),
         })),
       ),
     ],
@@ -51,22 +136,13 @@ const codeHandler = async (
   showOutput?: boolean | null,
 ): Promise<void> => {
   const results: string[] = [];
-  const evalCode = async (code: string): Promise<string[]> => {
-    const updatedCode = code.replace(/console\.\w+/g, "results.push");
-
-    if (code.includes("await")) {
-      return [await eval(`(async () => { ${updatedCode} })()`)];
-    } else {
-      return [await eval(updatedCode)];
-    }
-  };
 
   try {
     if (showOutput === false) {
       await interaction.deleteReply();
-      results.push(...await evalCode(code));
+      results.push(...await tseval(code, interaction));
     } else {
-      results.push(...await evalCode(code));
+      results.push(...await tseval(code, interaction));
       await interaction.followUp(codeReplyOptions(code, results));
     }
   } catch (e) {
@@ -76,7 +152,12 @@ const codeHandler = async (
         title: "Error!",
         message: codeBlock(
           "ts",
-          `${err.name}: ${err.message}\nLine: ${
+          `${err.name}: ${
+            err.message.replaceAll(
+              /(The module's source code could not be parsed: )|(data:application\/typescript,.+?:)/g,
+              "",
+            )
+          }\nLine: ${
             err.stack
               ? err.stack.match(/<anonymous>:\d:\d/)?.[0].match(/\d:\d/)?.[0]
               : ""
