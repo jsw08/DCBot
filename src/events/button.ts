@@ -11,7 +11,7 @@ const execute = (interaction: Interaction) => {
   if (!command || !command.button) return;
 
   if (
-    !checkAccess(interaction.user.id, interaction.guildId, command.permissions)
+    !checkAccess(interaction.user.id, interaction.guildId, command.permissions) && command.command.name !== "setupshop"
   ) {
     interaction.reply({
       embeds: [accessDeniedEmbed],

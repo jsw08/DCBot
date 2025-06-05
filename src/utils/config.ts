@@ -15,6 +15,7 @@ const configKeys = [
   "LASTFM_KEY",
   "REMINDER_TIMEOUT",
   "CLASHOFCODE_KEY",
+  "PHONE_SECRET",
 ] as const;
 type ConfigKeys = typeof configKeys[number];
 

@@ -18,6 +18,7 @@ import { join } from "@std/path";
 import { walk } from "@std/fs/walk";
 import { config } from "$utils/config.ts";
 import { hashString } from "$utils/ascii.ts";
+import { AnySelectMenuInteraction } from "discord.js";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 export interface SlashCommand {
