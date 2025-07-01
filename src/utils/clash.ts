@@ -1,6 +1,7 @@
 import { config } from "$utils/config.ts";
 import { io, Socket } from "socket.io-client";
 import { initChat } from "@mumulhl/duckduckgo-ai-chat";
+import { count } from "node:console";
 export const TOKEN = config.CLASHOFCODE_KEY;
 export const USERID = +TOKEN.slice(0, 7);
 
@@ -67,28 +68,26 @@ type InGameClash = CommonClash & {
   players: InGamePlayerClash[];
 };
 
-type CommonClashAPI =
-  & {
-    nbPlayersMin: number;
-    nbPlayersMax: number;
-    publicHandle: string;
-    clashDurationTypeId: "SHORT";
-    startTimestamp: number;
-    finished: boolean;
-    type: "PRIVATE";
-    programmingLanguages: Language[];
-    modes: GameMode[];
-  }
-  & (
-    | {
+type CommonClashAPI = {
+  nbPlayersMin: number;
+  nbPlayersMax: number;
+  publicHandle: string;
+  clashDurationTypeId: "SHORT";
+  startTimestamp: number;
+  finished: boolean;
+  type: "PRIVATE";
+  programmingLanguages: Language[];
+  modes: GameMode[];
+} & (
+  | {
       started: true;
       mode: (typeof GAMEMODES)[number];
       msBeforeEnd: number;
     }
-    | {
+  | {
       started: false;
     }
-  );
+);
 type UpdateClashAPI = CommonClashAPI & {
   minifiedPlayers: {
     id: number; // Player ID
@@ -100,29 +99,26 @@ type UpdateClashAPI = CommonClashAPI & {
   }[];
 };
 type FetchClashAPI = CommonClashAPI & {
-  players: (
-    & {
-      codingamerId: number;
-      codingamerNickname: string;
-      codingamerHandle: string;
-      score: number;
-      duration: number;
-      status: "OWNER" | "STANDARD";
-      rank: number;
-      position: number;
-      criterion?: number;
-    }
-    & (
-      | {
+  players: ({
+    codingamerId: number;
+    codingamerNickname: string;
+    codingamerHandle: string;
+    score: number;
+    duration: number;
+    status: "OWNER" | "STANDARD";
+    rank: number;
+    position: number;
+    criterion?: number;
+  } & (
+    | {
         testSessionStatus: "COMPLETED";
         submissionId: number;
         testSessionHandle: string;
         solutionShared: boolean;
         languageId: (typeof LANGUAGES)[number];
       }
-      | { testSessionStatus: "READY" }
-    )
-  )[];
+    | { testSessionStatus: "READY" }
+  ))[];
 };
 
 type CreateClashAPI = {
@@ -294,16 +290,16 @@ export class Clash {
     code:
       | string
       | ((
-        question: {
-          statement: string;
-          stubGenerator: string;
-          testCases: TestCase[];
-        },
-        language: (typeof this)["data"]["langs"][number],
-      ) => string | Promise<string>),
+          question: {
+            statement: string;
+            stubGenerator: string;
+            testCases: TestCase[];
+          },
+          language: (typeof this)["data"]["langs"][number],
+        ) => string | Promise<string>),
     language?: (typeof this)["data"]["langs"][number],
   ): Promise<boolean> {
-    if (!this.clash.started || this.clash.started && this.clash.finished) {
+    if (!this.clash.started || (this.clash.started && this.clash.finished)) {
       return true;
     }
     if (language && !this.clash.langs.includes(language)) return true;
@@ -330,9 +326,13 @@ export class Clash {
         testCases?: { inputBinaryId: number; outputBinaryId: number }[];
       } = (await testSesh.json()).currentQuestion?.question;
       if (
-        !questionObj || !questionObj.statement || !questionObj.stubGenerator ||
-        !questionObj.testCases || !(questionObj.testCases instanceof Array)
-      ) return true;
+        !questionObj ||
+        !questionObj.statement ||
+        !questionObj.stubGenerator ||
+        !questionObj.testCases ||
+        !(questionObj.testCases instanceof Array)
+      )
+        return true;
 
       const statement = questionObj.statement
         .replace(/<style.*?>.*?<\/style>/gs, "")
@@ -354,11 +354,14 @@ export class Clash {
         });
       }
 
-      resCode = await code({
-        statement: statement.trim(),
-        testCases,
-        stubGenerator: questionObj.stubGenerator,
-      }, language);
+      resCode = await code(
+        {
+          statement: statement.trim(),
+          testCases,
+          stubGenerator: questionObj.stubGenerator,
+        },
+        language,
+      );
     } else {
       resCode = code;
     }
@@ -380,12 +383,11 @@ export class Clash {
   }
   async submitAI() {
     if (!this.clash.started) return;
-    const chat = await this.submit(async (question, language) => {
-      const chat = await initChat("claude-3-haiku");
 
+    const chat = await this.submit(async (question, language) => {
       const prompt = `
 write shortest possible code with least amount of bytes in ${language}.
-Write only the code, in a markdown block. No additional text, or explainations.
+Write only the code, in a markdown block. No additional text, or explainations I REPEAT, NO TALKING.
 Use ${language}'s io. So for example, in ruby that'd be 'gets'/'ARGF' (ARGF IS ONLY BETTER IF YOU HANDLE MULTIPLE INPUTS). Javascript is special, use 'readline()' there.
 Pay attention to the amount of input lines.
 Write your code with the least amount of bytes.
@@ -400,19 +402,47 @@ You can start your code with the following (pseudocode)
 ${question.stubGenerator}
 
 And these are the test cases.
-${
-        question.testCases.slice(0, 2).map((v) =>
-          `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`
-        ).join("\n\n")
-      }
+${question.testCases
+  .slice(0, 2)
+  .map((v) => `INPUT:\n${v.input}\nOUTPUT:\n${v.output}`)
+  .join("\n\n")}
     `;
 
-      const res = (await chat.fetchFull(prompt)).replace(
-        /```[^\n]*([\s\S]*?)```/g,
-        "$1",
-      );
-      return res;
+      const res = await fetch("https://ai.hackclub.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      if (res.status !== 200)
+        return "Error while chatting with the ai. (STATUSCODE)";
+      const json: { choices: { message: { content: string } }[] } =
+        await res.json();
+
+      let message = "";
+      try {
+        message =
+          json.choices.at(0)?.message.content.trim() ??
+          "Error while chatting with the ai. (UNDEFINED)";
+      } catch (e) {
+        if (e instanceof TypeError)
+          return "Error while chatting with the ai. (INVALID OBJ)";
+
+        console.error(e);
+        return "Error, see logs.";
+      }
+
+      const msgLines = message.split("\n");
+      if (msgLines[0].includes("```"))
+        message = msgLines.splice(1, msgLines.length - 2).join("\n");
+      console.log(message);
+
+      return message;
     });
+
     return chat;
   }
   //
@@ -434,27 +464,27 @@ ${
       modes: clashData.modes,
       ...(clashData.started
         ? {
-          started: true,
-          finished: clashData.finished,
-          endDate: new Date(Date.now() + clashData.msBeforeEnd),
-          mode: clashData.mode,
-          players: clashData.players.map((v) => ({
-            nickname: v.codingamerNickname,
-            userID: v.codingamerId,
-            rank: v.rank,
-            score: v.score,
-            completed: v.testSessionStatus === "COMPLETED",
-            duration: v.duration,
-            criterion: v.criterion,
-          })),
-        }
+            started: true,
+            finished: clashData.finished,
+            endDate: new Date(Date.now() + clashData.msBeforeEnd),
+            mode: clashData.mode,
+            players: clashData.players.map((v) => ({
+              nickname: v.codingamerNickname,
+              userID: v.codingamerId,
+              rank: v.rank,
+              score: v.score,
+              completed: v.testSessionStatus === "COMPLETED",
+              duration: v.duration,
+              criterion: v.criterion,
+            })),
+          }
         : {
-          started: false,
-          players: clashData.players.map((v) => ({
-            nickname: v.codingamerNickname,
-            userID: v.codingamerId,
-          })),
-        }),
+            started: false,
+            players: clashData.players.map((v) => ({
+              nickname: v.codingamerNickname,
+              userID: v.codingamerId,
+            })),
+          }),
     };
 
     if (!hasHandle) this.clash = data;
@@ -490,33 +520,29 @@ ${
             started: clashData.started,
             ...(clashData.started
               ? {
-                finished: clashData.finished,
-                endDate: new Date(Date.now() + clashData.msBeforeEnd),
-                mode: clashData.mode,
-                players: clashData.minifiedPlayers.map((v) => ({
-                  nickname: v.k,
-                  completed: false,
-                  duration: 0,
-                  rank: v.r,
-                  score: v.d,
-                  userID: v.id,
-                })),
-              }
+                  finished: clashData.finished,
+                  endDate: new Date(Date.now() + clashData.msBeforeEnd),
+                  mode: clashData.mode,
+                  players: clashData.minifiedPlayers.map((v) => ({
+                    nickname: v.k,
+                    completed: false,
+                    duration: 0,
+                    rank: v.r,
+                    score: v.d,
+                    userID: v.id,
+                  })),
+                }
               : {
-                started: false,
-                players: clashData.minifiedPlayers.map((v) => ({
-                  nickname: v.k,
-                  userID: v.id,
-                })),
-              }),
+                  started: false,
+                  players: clashData.minifiedPlayers.map((v) => ({
+                    nickname: v.k,
+                    userID: v.id,
+                  })),
+                }),
           };
           await this.runHandler();
 
-          if (
-            clashData.started &&
-            !clashData.finished &&
-            !started
-          ) {
+          if (clashData.started && !clashData.finished && !started) {
             started = true;
             await this.submitAI();
           }
