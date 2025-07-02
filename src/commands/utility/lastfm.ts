@@ -8,6 +8,9 @@ import { config } from "$utils/config.ts";
 import db from "$utils/db.ts";
 import { embed } from "$utils/embed.ts";
 
+const lastFMPic =
+  "https://lastfm.freetls.fastly.net/i/u/174s/2a96cbd8b46e442fc41c2b86b821562f.png";
+
 interface Track {
   artist: string;
   title: string;
@@ -53,11 +56,12 @@ const getCurrentlyPlayingTrack = async (
     }
 
     const currentTrack = tracks[0];
+    const image = currentTrack.image[2]["#text"] 
     return {
       artist: currentTrack.artist["#text"],
       title: currentTrack.name,
       album: currentTrack.album["#text"],
-      image: currentTrack.image[2]["#text"],
+      image: image === "" ? lastFMPic : image,
       url: currentTrack.url,
     };
   } catch (error) {
@@ -138,8 +142,6 @@ const nowPlayingHandler = async (interaction: ChatInputCommandInteraction) => {
       ],
     });
   } else {
-    const lastFMPic =
-      "https://www.last.fm/static/images/lastfm_avatar_applemusic.b06eb8ad89be.png";
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
