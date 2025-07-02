@@ -3,7 +3,7 @@
     "dev": "deno run -A --watch ./src/main.ts",
     "debug": "deno run --inspect -A --watch ./src/main.ts"
   },
-  "nodeModulesDir": "manual",
+  "nodeModulesDir": "auto",
   "imports": {
     "$/": "./src/",
     "$utils/": "./src/utils/",
