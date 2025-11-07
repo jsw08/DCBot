@@ -69,6 +69,8 @@ const typstRender = async (
       "compile",
       "--root",
       TYPST_DIR,
+      "--package-cache-path",
+      join(TYPST_DIR, ".cache"),
       "-f",
       "png",
       "--input",
