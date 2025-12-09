@@ -1,12 +1,12 @@
+import { SlashCommand } from "../../commandLoader.ts";
+import { embed } from "$utils/embed.ts";
 import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonInteraction,
+  ButtonStyle,
   SlashCommandBuilder,
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { ButtonStyle } from "discord.js";
-import { embed } from "$utils/embed.ts";
 
 const command: SlashCommand = {
   inDm: true,

@@ -1,8 +1,8 @@
-import { Client, Collection, GatewayIntentBits } from "discord.js";
-import commandLoader, { SlashCommand } from "$/commandLoader.ts";
-import eventLoader from "$/eventLoader.ts";
 import { config } from "$utils/config.ts";
 import { checkOrCreateDir } from "$utils/dir.ts";
+import { Client, Collection, GatewayIntentBits } from "discord.js";
+import commandLoader, { SlashCommand } from "./commandLoader.ts";
+import eventLoader from "./eventLoader.ts";
 
 checkOrCreateDir(config.DATA_DIR);
 

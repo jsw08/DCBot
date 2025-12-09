@@ -1,3 +1,6 @@
+import { chronoErrorReply } from "$utils/chrono.ts";
+import { embed } from "$utils/embed.ts";
+import { parseDate } from "chrono-node";
 import {
   codeBlock,
   SlashCommandBuilder,
@@ -5,10 +8,7 @@ import {
   TimestampStyles,
   TimestampStylesString,
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { embed } from "$utils/embed.ts";
-import { parseDate } from "chrono-node";
-import { chronoErrorReply } from "$utils/chrono.ts";
+import { SlashCommand } from "../../commandLoader.ts";
 
 const command: SlashCommand = {
   inDm: true,

@@ -1,7 +1,5 @@
-import { config } from "$utils/config.ts";
 import { io, Socket } from "socket.io-client";
-import { initChat } from "@mumulhl/duckduckgo-ai-chat";
-import { count } from "node:console";
+import { config } from "./config.ts";
 export const TOKEN = config.CLASHOFCODE_KEY;
 export const USERID = +TOKEN.slice(0, 7);
 

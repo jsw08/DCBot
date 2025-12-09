@@ -1,3 +1,6 @@
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import { delButtonRow } from "$utils/deleteBtn.ts";
+import { embed } from "$utils/embed.ts";
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
@@ -7,15 +10,12 @@ import {
   ModalBuilder,
   ModalSubmitInteraction,
   SlashCommandBuilder,
+  SlashCommandSubcommandBuilder,
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { embed } from "$utils/embed.ts";
-import { SlashCommandSubcommandBuilder } from "discord.js";
-import { delButtonRow } from "$utils/deleteBtn.ts";
-import { accessDeniedEmbed } from "$utils/accessCheck.ts";
 import ts from "typescript";
+import { SlashCommand } from "../../commandLoader.ts";
 
 async function tseval(
   code: string,

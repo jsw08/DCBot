@@ -1,7 +1,7 @@
 import { Database } from "@db/sqlite";
 import { join } from "@std/path/join";
-import { config } from "$utils/config.ts";
-import { addSigListener } from "$utils/sighandler.ts";
+import { config } from "./config.ts";
+import { addSigListener } from "./sighandler.ts";
 
 const db = new Database(join(config.DATA_DIR, "db.db"));
 

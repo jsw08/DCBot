@@ -1,27 +1,23 @@
+import { hashString } from "$utils/ascii.ts";
+import { config } from "$utils/config.ts";
+import { walk } from "@std/fs/walk";
+import { join } from "@std/path";
 import {
   AutocompleteInteraction,
+  ButtonInteraction,
   CacheType,
   ChatInputCommandInteraction,
+  Client,
   Collection,
+  ContextMenuCommandBuilder,
   MessageContextMenuCommandInteraction,
   ModalSubmitInteraction,
   REST,
   Routes,
   SlashCommandBuilder,
-} from "discord.js";
-import {
-  ButtonInteraction,
-  Client,
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
-import { join } from "@std/path";
-import { walk } from "@std/fs/walk";
-import { config } from "$utils/config.ts";
-import { hashString } from "$utils/ascii.ts";
-import { ContextMenuCommandBuilder } from "discord.js";
-import { ContextMenuCommandInteraction } from "discord.js";
-import { UserContextMenuCommandInteraction } from "discord.js";
 
 export type Permissions = "everywhere" | "select_few" | "nowhere";
 interface BaseCommand {

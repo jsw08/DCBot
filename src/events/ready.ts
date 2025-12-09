@@ -7,4 +7,5 @@ const event: BotEvent = {
     console.log("Client's ready.");
   },
 };
+
 export default event;

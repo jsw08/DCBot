@@ -1,6 +1,6 @@
-import { SlashCommandBuilder } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
+import { SlashCommandBuilder } from "discord.js";
+import { SlashCommand } from "../../commandLoader.ts";
 
 const command: SlashCommand = {
   inDm: true,
