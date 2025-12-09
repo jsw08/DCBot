@@ -1,3 +1,13 @@
+import { SlashCommand } from "../../commandLoader.ts";
+import { config } from "$utils/config.ts";
+import { embed } from "$utils/embed.ts";
+import {
+  dir,
+  imageFileTypes,
+  usernameAutocomplete,
+} from "$utils/sexyHelper.ts";
+import { serveDir } from "@std/http/file-server";
+import { join } from "@std/path/join";
 import {
   ActionRowBuilder,
   AutocompleteInteraction,
@@ -10,16 +20,6 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { config } from "$utils/config.ts";
-import { embed } from "$utils/embed.ts";
-import {
-  dir,
-  imageFileTypes,
-  usernameAutocomplete,
-} from "$utils/sexyHelper.ts";
-import { join } from "@std/path/join";
-import { serveDir } from "@std/http/file-server";
 
 const getSexyImages = async (
   nickname: string,

@@ -1,7 +1,7 @@
-import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import { config } from "$utils/config.ts";
 import { join } from "@std/path/join";
-import { checkOrCreateDir } from "$utils/dir.ts";
+import { type ApplicationCommandOptionChoiceData } from "discord.js";
+import { config } from "./config.ts";
+import { checkOrCreateDir } from "./dir.ts";
 
 export const usernameAutocomplete = async (
   amount: number,

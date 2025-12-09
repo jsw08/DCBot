@@ -1,6 +1,6 @@
-import { Interaction } from "discord.js";
-import { BotEvent } from "$/eventLoader.ts";
 import { accessDeniedEmbed, checkAccess } from "$utils/accessCheck.ts";
+import { Interaction } from "discord.js";
+import { BotEvent } from "../eventLoader.ts";
 
 const execute = (interaction: Interaction) => {
   if (!interaction.isButton()) return;

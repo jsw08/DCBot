@@ -1,10 +1,10 @@
-import { Client } from "discord.js";
 import { join } from "@std/path/join";
+import { Client } from "discord.js";
 
 export interface BotEvent {
   name: string;
   once?: boolean | false;
-  // @ts-ignore ehhhh
+  // deno-lint-ignore no-explicit-any
   execute: (...args: any[]) => void;
 }
 

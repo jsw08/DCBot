@@ -1,22 +1,21 @@
+import { chronoErrorReply } from "$utils/chrono.ts";
+import { config } from "$utils/config.ts";
+import db from "$utils/db.ts";
+import { embed } from "$utils/embed.ts";
+import { parseDate } from "chrono-node";
 import {
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonStyle,
   codeBlock,
+  ComponentType,
+  DiscordjsErrorCodes,
   SlashCommandBuilder,
   time,
-  TimestampStyles as TimeS,
-  TimestampStylesString,
+  TimestampStyles as TimeS
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { embed } from "$utils/embed.ts";
-import db from "$utils/db.ts";
-import { config } from "$utils/config.ts";
-import { client } from "$/main.ts";
-import { ButtonStyle } from "discord.js";
-import { parseDate } from "chrono-node";
-import { chronoErrorReply } from "$utils/chrono.ts";
-import { ComponentType } from "discord.js";
-import { DiscordjsErrorCodes } from "discord.js";
+import { SlashCommand } from "../../commandLoader.ts";
+import { client } from "../../main.ts";
 
 db.sql`
   CREATE TABLE IF NOT EXISTS reminders (

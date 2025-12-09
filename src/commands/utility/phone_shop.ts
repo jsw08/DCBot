@@ -1,24 +1,24 @@
-import { SlashCommand } from "$/commandLoader.ts";
+import { SlashCommand } from "../../commandLoader.ts";
+import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
-import { ComponentType } from "discord.js";
-import { InteractionUpdateOptions } from "discord.js";
-import { InteractionReplyOptions } from "discord.js";
-import { StringSelectMenuOptionBuilder } from "discord.js";
-import { ButtonStyle } from "discord.js";
+import { join } from "@std/path";
 import {
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  InteractionReplyOptions,
+  InteractionUpdateOptions,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } from "discord.js";
-import { config } from "$utils/config.ts";
-import { join } from "@std/path";
 
 const phones_text = await Deno.readTextFile(
   join(config.DATA_DIR, "phones.json"),
 ).catch((e) => {
   console.error(`
-    Failed to read phones json file. Please create a json file containing the following file structure: '{phones: []}' with the phones items being the following type: 
+    Failed to read phones json file. Please create a json file containing the following file structure: '{phones: []}' with the phones items being the following type:
     {
       name: string;
       codeName: string;
@@ -92,7 +92,7 @@ const command: SlashCommand = {
       embeds: [embed({
         title: `${name}'s Phone Shop`,
         message:
-          `Are you tempted to prank your teachers with the new phone policy in place? 
+          `Are you tempted to prank your teachers with the new phone policy in place?
 Now you can do it affordably, order yours today!
 -# Price will depend on the model and strength that you choose.
 -# Expect delivery between 2 - 10 business days (if you choose to receive it at cld-mhp).`,

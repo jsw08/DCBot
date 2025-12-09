@@ -1,4 +1,4 @@
-import { encodeHex } from "jsr:@std/encoding/hex";
+import { encodeHex } from "@std/encoding/hex";
 
 export const generateTable = (columns: number, items: string[]): string => { // Not used anymore, but I spent quite a lot of time on this one so it may live here.
   columns = items.length > columns ? columns : items.length;

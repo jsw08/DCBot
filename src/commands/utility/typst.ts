@@ -1,3 +1,10 @@
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import { config } from "$utils/config.ts";
+import { delButtonRow } from "$utils/deleteBtn.ts";
+import { checkOrCreateDir } from "$utils/dir.ts";
+import { embed } from "$utils/embed.ts";
+import { basename } from "@std/path/basename";
+import { join } from "@std/path/join";
 import {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -12,14 +19,7 @@ import {
   TextInputStyle,
 } from "discord.js";
 import { Buffer } from "node:buffer";
-import { SlashCommand } from "$/commandLoader.ts";
-import { basename } from "@std/path/basename";
-import { embed } from "$utils/embed.ts";
-import { checkOrCreateDir } from "$utils/dir.ts";
-import { join } from "@std/path/join";
-import { config } from "$utils/config.ts";
-import { delButtonRow } from "$utils/deleteBtn.ts";
-import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import { SlashCommand } from "../../commandLoader.ts";
 
 const TYPST_DIR = join(config.DATA_DIR, "typst");
 // Typst installed check

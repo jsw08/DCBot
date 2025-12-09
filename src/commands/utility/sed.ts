@@ -1,23 +1,17 @@
-import {
-  SlashCommandBuilder,
-  ContextMenuCommandBuilder,
-  ApplicationCommandType,
-  MessageContextMenuCommandInteraction,
-  ModalActionRowComponentBuilder,
-  Embed,
-  APIEmbedField,
-} from "discord.js";
-import { ContextMenu } from "$/commandLoader.ts";
 import { embed } from "$utils/embed.ts";
-import { CacheType } from "discord.js";
-import { ModalBuilder } from "discord.js";
-import { ActionRowBuilder } from "discord.js";
-import { TextInputBuilder } from "discord.js";
-import { TextInputStyle } from "discord.js";
-import { MessageFlags } from "discord.js";
-import { ContextMenuCommandInteraction } from "discord.js";
-import { title } from "node:process";
-import { EmbedBuilder } from "discord.js";
+import {
+  ActionRowBuilder,
+  ApplicationCommandType,
+  ContextMenuCommandBuilder,
+  EmbedBuilder,
+  MessageContextMenuCommandInteraction,
+  MessageFlags,
+  ModalActionRowComponentBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
+} from "discord.js";
+import { ContextMenu } from "../../commandLoader.ts";
 
 async function expiredModal(interaction: MessageContextMenuCommandInteraction) {
   await interaction.reply({

@@ -1,12 +1,12 @@
+import { SlashCommand } from "../../commandLoader.ts";
+import { config } from "$utils/config.ts";
+import db from "$utils/db.ts";
+import { embed } from "$utils/embed.ts";
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   SlashCommandBuilder,
 } from "discord.js";
-import { SlashCommand } from "$/commandLoader.ts";
-import { config } from "$utils/config.ts";
-import db from "$utils/db.ts";
-import { embed } from "$utils/embed.ts";
 
 const lastFMPic =
   "https://lastfm.freetls.fastly.net/i/u/174s/2a96cbd8b46e442fc41c2b86b821562f.png";
@@ -56,7 +56,7 @@ const getCurrentlyPlayingTrack = async (
     }
 
     const currentTrack = tracks[0];
-    const image = currentTrack.image[2]["#text"] 
+    const image = currentTrack.image[2]["#text"]
     return {
       artist: currentTrack.artist["#text"],
       title: currentTrack.name,
@@ -96,9 +96,9 @@ const setHandler = async (interaction: ChatInputCommandInteraction) => {
 
   db.exec(
     `
-    INSERT INTO users (discord_id, lastfm_username) 
-    VALUES (:discord_id, :lastfm_username) 
-    ON CONFLICT(discord_id) 
+    INSERT INTO users (discord_id, lastfm_username)
+    VALUES (:discord_id, :lastfm_username)
+    ON CONFLICT(discord_id)
     DO UPDATE SET lastfm_username = :lastfm_username;
   `,
     { discord_id: interaction.user.id, lastfm_username: username },

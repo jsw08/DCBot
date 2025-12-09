@@ -4,7 +4,7 @@ import {
   ButtonStyle,
   InteractionReplyOptions,
 } from "discord.js";
-import { embed } from "$utils/embed.ts";
+import { embed } from "./embed.ts";
 
 export const chronoErrorReply: InteractionReplyOptions = {
   embeds: [embed({

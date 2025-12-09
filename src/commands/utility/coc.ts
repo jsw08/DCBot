@@ -1,4 +1,21 @@
-import { SlashCommand } from "$/commandLoader.ts";
+import { SlashCommand } from "../../commandLoader.ts";
+import { accessDeniedEmbed } from "$utils/accessCheck.ts";
+import { decodeSubset, encodeSubset } from "$utils/ascii.ts";
+import {
+  Clash,
+  type CommonPlayerClash,
+  type GameMode,
+  GAMEMODES,
+  type Handler,
+  HandlerSignals,
+  type InGamePlayerClash,
+  type Language,
+  LANGUAGES,
+  USERID,
+} from "$utils/clash.ts";
+import { embed } from "$utils/embed.ts";
+import { spreadEvenlyFields } from "$utils/formatting.ts";
+import { addSigListener } from "$utils/sighandler.ts";
 import {
   ActionRowBuilder,
   APIEmbedField,
@@ -12,24 +29,7 @@ import {
   time,
   userMention,
 } from "discord.js";
-import {
-  Clash,
-  type CommonPlayerClash,
-  type GameMode,
-  GAMEMODES,
-  type Handler,
-  HandlerSignals,
-  type InGamePlayerClash,
-  type Language,
-  LANGUAGES,
-  USERID,
-} from "$utils/clash.ts";
-import { accessDeniedEmbed } from "$utils/accessCheck.ts";
-import { embed } from "$utils/embed.ts";
-import { decodeSubset, encodeSubset } from "$utils/ascii.ts";
 import ms from "ms";
-import { addSigListener } from "$utils/sighandler.ts";
-import { spreadEvenlyFields } from "$utils/formatting.ts";
 
 type GameModes = GameMode[];
 type Languages = Language[];

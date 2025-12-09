@@ -1,10 +1,6 @@
-import { SlashCommand } from "$/commandLoader.ts";
-import {
-  AutocompleteInteraction,
-  Channel,
-  SlashCommandBuilder,
-  TextChannel,
-} from "discord.js";
+import { SlashCommand } from "../../commandLoader.ts";
+import { client } from "../../main.ts";
+import { config } from "$utils/config.ts";
 import { embed } from "$utils/embed.ts";
 import {
   dir,
@@ -12,9 +8,13 @@ import {
   usernameAutocomplete,
 } from "$utils/sexyHelper.ts";
 import { join } from "@std/path/join";
-import { config } from "$utils/config.ts";
-import { client } from "$/main.ts";
-import { roleMention } from "discord.js";
+import {
+  AutocompleteInteraction,
+  Channel,
+  roleMention,
+  SlashCommandBuilder,
+  TextChannel,
+} from "discord.js";
 
 const ROLES_PING = config.SEXY_LOG_ROLES
   .split(",")
